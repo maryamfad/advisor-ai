@@ -1,8 +1,8 @@
 """create clients table
 
-Revision ID: 8e0d072b4d0f
+Revision ID: e2e6f37ac689
 Revises: 
-Create Date: 2026-08-11 00:06:28.443542
+Create Date: 2026-08-11 00:17:24.388798
 
 """
 from collections.abc import Sequence
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '8e0d072b4d0f'
+revision: str = 'e2e6f37ac689'
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
