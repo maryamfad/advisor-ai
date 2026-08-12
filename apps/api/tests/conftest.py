@@ -8,6 +8,7 @@ from app.main import app
 from app.models.account import Account
 from app.models.advisor import Advisor
 from app.models.client import Client as ClientModel
+from app.models.transaction import Transaction
 
 
 @pytest.fixture
@@ -46,6 +47,18 @@ def advisor() -> Generator[Advisor, None, None]:
         # be cleared explicitly before their parent clients, or the
         # foreign key constraint rejects the delete.
         if client_ids:
+            account_ids = [
+                row[0]
+                for row in db.query(Account.id)
+                .filter(Account.client_id.in_(client_ids))
+                .all()
+            ]
+
+            if account_ids:
+                db.query(Transaction).filter(
+                    Transaction.account_id.in_(account_ids)
+                ).delete(synchronize_session=False)
+
             db.query(Account).filter(Account.client_id.in_(client_ids)).delete(
                 synchronize_session=False
             )

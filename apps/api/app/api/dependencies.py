@@ -4,6 +4,7 @@ from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
+from app.models.account import Account
 from app.models.client import Client
 
 
@@ -59,3 +60,26 @@ def get_owned_client(
         )
 
     return client
+
+
+def get_owned_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Account:
+    """Fetch an account by id, scoped to the already-verified owned
+    client. Used by routes nested under
+    /clients/{client_id}/accounts/{account_id}/... (transactions, etc.).
+    Returns 404 (not 403) when the account exists but belongs to a
+    different client, for the same enumeration-avoidance reason as
+    get_owned_client.
+    """
+    account = db.get(Account, account_id)
+
+    if account is None or account.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Account not found.",
+        )
+
+    return account
