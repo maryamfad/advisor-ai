@@ -11,10 +11,21 @@ class ClientBase(BaseModel):
 
 
 class ClientCreate(ClientBase):
-    advisor_id: int
+    """Payload for POST /clients. advisor_id is taken from the
+    authenticated advisor, never from the request body."""
 
 
-class ClientResponse(ClientBase):
+class ClientUpdate(BaseModel):
+    """Payload for PATCH /clients/{id}. All fields optional so the
+    advisor can update just what changed."""
+
+    first_name: str | None = None
+    last_name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+
+
+class ClientRead(ClientBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
