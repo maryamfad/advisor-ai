@@ -8,6 +8,7 @@ from app.main import app
 from app.models.account import Account
 from app.models.advisor import Advisor
 from app.models.client import Client as ClientModel
+from app.models.financial_goal import FinancialGoal
 from app.models.transaction import Transaction
 
 
@@ -62,6 +63,9 @@ def advisor() -> Generator[Advisor, None, None]:
             db.query(Account).filter(Account.client_id.in_(client_ids)).delete(
                 synchronize_session=False
             )
+            db.query(FinancialGoal).filter(
+                FinancialGoal.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
             db.query(ClientModel).filter(
                 ClientModel.id.in_(client_ids)
             ).delete(synchronize_session=False)
