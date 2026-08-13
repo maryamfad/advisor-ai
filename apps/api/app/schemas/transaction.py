@@ -19,6 +19,17 @@ class TransactionCreate(TransactionBase):
     account_id comes from the URL, never from the request body."""
 
 
+class TransactionUpdate(BaseModel):
+    """Payload for PATCH .../transactions/{transaction_id}. All fields
+    optional so the advisor can update just what changed."""
+
+    transaction_date: date | None = None
+    description: str | None = None
+    merchant: str | None = None
+    amount: Decimal | None = None
+    category: TransactionCategory | None = None
+
+
 class TransactionRead(TransactionBase):
     model_config = ConfigDict(from_attributes=True)
 

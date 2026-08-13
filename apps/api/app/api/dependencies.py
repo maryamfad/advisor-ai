@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models.account import Account
 from app.models.client import Client
+from app.models.financial_goal import FinancialGoal
+from app.models.transaction import Transaction
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -83,3 +85,43 @@ def get_owned_account(
         )
 
     return account
+
+
+def get_owned_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    account: Account = Depends(get_owned_account),
+) -> Transaction:
+    """Fetch a transaction by id, scoped to the already-verified owned
+    account. Used by routes nested under
+    /clients/{client_id}/accounts/{account_id}/transactions/{transaction_id}.
+    """
+    transaction = db.get(Transaction, transaction_id)
+
+    if transaction is None or transaction.account_id != account.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transaction not found.",
+        )
+
+    return transaction
+
+
+def get_owned_goal(
+    goal_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> FinancialGoal:
+    """Fetch a financial goal by id, scoped to the already-verified
+    owned client. Used by routes nested under
+    /clients/{client_id}/goals/{goal_id}.
+    """
+    goal = db.get(FinancialGoal, goal_id)
+
+    if goal is None or goal.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Goal not found.",
+        )
+
+    return goal

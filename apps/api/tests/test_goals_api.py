@@ -93,3 +93,75 @@ def test_advisor_cannot_list_another_advisors_client_goals(
     )
 
     assert response.status_code == 404
+
+
+def _create_goal(api_client: TestClient, advisor_id: int, client_id: int) -> dict:
+    return api_client.post(
+        f"/clients/{client_id}/goals",
+        json={
+            "name": "Emergency Fund",
+            "goal_type": "emergency_fund",
+            "target_amount": "10000.00",
+        },
+        headers=_headers(advisor_id),
+    ).json()
+
+
+def test_get_single_goal(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "goal4@example.com")
+    goal = _create_goal(api_client, advisor.id, client["id"])
+
+    response = api_client.get(
+        f"/clients/{client['id']}/goals/{goal['id']}",
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == goal["id"]
+
+
+def test_update_goal(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "goal5@example.com")
+    goal = _create_goal(api_client, advisor.id, client["id"])
+
+    response = api_client.patch(
+        f"/clients/{client['id']}/goals/{goal['id']}",
+        json={"current_amount": "1250.00", "status": "active"},
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["current_amount"] == "1250.00"
+    assert response.json()["name"] == "Emergency Fund"  # untouched
+
+
+def test_delete_goal(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "goal6@example.com")
+    goal = _create_goal(api_client, advisor.id, client["id"])
+
+    delete_response = api_client.delete(
+        f"/clients/{client['id']}/goals/{goal['id']}",
+        headers=_headers(advisor.id),
+    )
+    assert delete_response.status_code == 204
+
+    get_response = api_client.get(
+        f"/clients/{client['id']}/goals/{goal['id']}",
+        headers=_headers(advisor.id),
+    )
+    assert get_response.status_code == 404
+
+
+def test_advisor_cannot_delete_another_advisors_goal(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "goal7@example.com")
+    goal = _create_goal(api_client, advisor.id, client["id"])
+    other_advisor_id = advisor.id + 999999
+
+    response = api_client.delete(
+        f"/clients/{client['id']}/goals/{goal['id']}",
+        headers=_headers(other_advisor_id),
+    )
+
+    assert response.status_code == 404

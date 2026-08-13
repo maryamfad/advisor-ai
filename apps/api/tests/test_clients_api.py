@@ -124,3 +124,87 @@ def test_get_nonexistent_client_returns_404(
     response = api_client.get("/clients/999999999", headers=_headers(advisor.id))
 
     assert response.status_code == 404
+
+
+def test_delete_client(api_client: TestClient, advisor: Advisor) -> None:
+    created = api_client.post(
+        "/clients",
+        json={"first_name": "Sarah", "last_name": "Chen", "email": "del1@example.com"},
+        headers=_headers(advisor.id),
+    ).json()
+
+    delete_response = api_client.delete(
+        f"/clients/{created['id']}", headers=_headers(advisor.id)
+    )
+    assert delete_response.status_code == 204
+
+    get_response = api_client.get(
+        f"/clients/{created['id']}", headers=_headers(advisor.id)
+    )
+    assert get_response.status_code == 404
+
+
+def test_delete_client_cascades_to_accounts_and_goals(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = api_client.post(
+        "/clients",
+        json={"first_name": "Sarah", "last_name": "Chen", "email": "del2@example.com"},
+        headers=_headers(advisor.id),
+    ).json()
+
+    account = api_client.post(
+        f"/clients/{client['id']}/accounts",
+        json={"name": "Checking", "account_type": "checking"},
+        headers=_headers(advisor.id),
+    ).json()
+
+    api_client.post(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        json={
+            "transaction_date": "2026-08-01",
+            "description": "Groceries",
+            "amount": "-50.00",
+        },
+        headers=_headers(advisor.id),
+    )
+
+    api_client.post(
+        f"/clients/{client['id']}/goals",
+        json={
+            "name": "Emergency Fund",
+            "goal_type": "emergency_fund",
+            "target_amount": "5000",
+        },
+        headers=_headers(advisor.id),
+    )
+
+    delete_response = api_client.delete(
+        f"/clients/{client['id']}", headers=_headers(advisor.id)
+    )
+    assert delete_response.status_code == 204
+
+    # Deleting the client should not leave orphaned accounts/goals/
+    # transactions behind -- the cascade in Client's relationships
+    # should have removed them too.
+    accounts_response = api_client.get(
+        f"/clients/{client['id']}/accounts", headers=_headers(advisor.id)
+    )
+    assert accounts_response.status_code == 404
+
+
+def test_advisor_cannot_delete_another_advisors_client(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = api_client.post(
+        "/clients",
+        json={"first_name": "Sarah", "last_name": "Chen", "email": "del3@example.com"},
+        headers=_headers(advisor.id),
+    ).json()
+
+    other_advisor_id = advisor.id + 999999
+
+    response = api_client.delete(
+        f"/clients/{client['id']}", headers=_headers(other_advisor_id)
+    )
+    assert response.status_code == 404

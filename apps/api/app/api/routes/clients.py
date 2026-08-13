@@ -69,3 +69,16 @@ def update_client(
     db.refresh(client)
 
     return client
+
+
+@router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client(
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> None:
+    # ORM-level delete (not a bulk query) so the cascade="all,
+    # delete-orphan" on Client's relationships actually fires, taking
+    # accounts, goals, budgets, insurance_policies, and documents with
+    # it -- see app/models/client.py.
+    db.delete(client)
+    db.commit()

@@ -21,6 +21,19 @@ class GoalCreate(GoalBase):
     from the URL, never from the request body."""
 
 
+class GoalUpdate(BaseModel):
+    """Payload for PATCH /clients/{client_id}/goals/{goal_id}. All
+    fields optional so the advisor can update just what changed."""
+
+    name: str | None = None
+    goal_type: GoalType | None = None
+    target_amount: Decimal | None = None
+    current_amount: Decimal | None = None
+    monthly_contribution: Decimal | None = None
+    target_date: date | None = None
+    status: GoalStatus | None = None
+
+
 class GoalRead(GoalBase):
     model_config = ConfigDict(from_attributes=True)
 

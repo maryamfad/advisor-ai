@@ -19,6 +19,17 @@ class AccountCreate(AccountBase):
     from the URL, never from the request body."""
 
 
+class AccountUpdate(BaseModel):
+    """Payload for PATCH .../accounts/{account_id}. All fields optional
+    so the advisor can update just what changed."""
+
+    name: str | None = None
+    account_type: AccountType | None = None
+    institution: str | None = None
+    balance: Decimal | None = None
+    currency: str | None = None
+
+
 class AccountRead(AccountBase):
     model_config = ConfigDict(from_attributes=True)
 

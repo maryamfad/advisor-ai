@@ -126,3 +126,106 @@ def test_account_from_different_client_returns_404(
     )
 
     assert response.status_code == 404
+
+
+def test_get_single_transaction(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "tx6@example.com")
+    account = _create_account(api_client, advisor.id, client["id"])
+
+    created = api_client.post(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        json={
+            "transaction_date": "2026-08-01",
+            "description": "Coffee",
+            "amount": "-4.50",
+        },
+        headers=_headers(advisor.id),
+    ).json()
+
+    response = api_client.get(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions/{created['id']}",
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["description"] == "Coffee"
+
+
+def test_update_transaction(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "tx7@example.com")
+    account = _create_account(api_client, advisor.id, client["id"])
+
+    created = api_client.post(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        json={
+            "transaction_date": "2026-08-01",
+            "description": "Coffee",
+            "amount": "-4.50",
+            "category": "other",
+        },
+        headers=_headers(advisor.id),
+    ).json()
+
+    response = api_client.patch(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions/{created['id']}",
+        json={"category": "dining"},
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["category"] == "dining"
+    assert response.json()["description"] == "Coffee"  # untouched
+
+
+def test_delete_transaction(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "tx8@example.com")
+    account = _create_account(api_client, advisor.id, client["id"])
+
+    created = api_client.post(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        json={
+            "transaction_date": "2026-08-01",
+            "description": "Coffee",
+            "amount": "-4.50",
+        },
+        headers=_headers(advisor.id),
+    ).json()
+
+    delete_response = api_client.delete(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions/{created['id']}",
+        headers=_headers(advisor.id),
+    )
+    assert delete_response.status_code == 204
+
+    list_response = api_client.get(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        headers=_headers(advisor.id),
+    )
+    assert list_response.json() == []
+
+
+def test_advisor_cannot_update_another_advisors_transaction(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "tx9@example.com")
+    account = _create_account(api_client, advisor.id, client["id"])
+
+    created = api_client.post(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions",
+        json={
+            "transaction_date": "2026-08-01",
+            "description": "Coffee",
+            "amount": "-4.50",
+        },
+        headers=_headers(advisor.id),
+    ).json()
+
+    other_advisor_id = advisor.id + 999999
+
+    response = api_client.patch(
+        f"/clients/{client['id']}/accounts/{account['id']}/transactions/{created['id']}",
+        json={"amount": "-999.00"},
+        headers=_headers(other_advisor_id),
+    )
+
+    assert response.status_code == 404

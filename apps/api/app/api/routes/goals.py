@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_owned_client
+from app.api.dependencies import get_db, get_owned_client, get_owned_goal
 from app.models.client import Client
 from app.models.financial_goal import FinancialGoal
-from app.schemas.goal import GoalCreate, GoalRead
+from app.schemas.goal import GoalCreate, GoalRead, GoalUpdate
 
 router = APIRouter(prefix="/clients/{client_id}/goals", tags=["goals"])
 
@@ -42,3 +42,33 @@ def list_goals(
     stmt = select(FinancialGoal).where(FinancialGoal.client_id == client.id)
 
     return list(db.scalars(stmt).all())
+
+
+@router.get("/{goal_id}", response_model=GoalRead)
+def get_goal(goal: FinancialGoal = Depends(get_owned_goal)) -> FinancialGoal:
+    return goal
+
+
+@router.patch("/{goal_id}", response_model=GoalRead)
+def update_goal(
+    payload: GoalUpdate,
+    db: Session = Depends(get_db),
+    goal: FinancialGoal = Depends(get_owned_goal),
+) -> FinancialGoal:
+    updates = payload.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(goal, field, value)
+
+    db.commit()
+    db.refresh(goal)
+
+    return goal
+
+
+@router.delete("/{goal_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_goal(
+    db: Session = Depends(get_db),
+    goal: FinancialGoal = Depends(get_owned_goal),
+) -> None:
+    db.delete(goal)
+    db.commit()
