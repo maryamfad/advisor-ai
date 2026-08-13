@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models.account import Account
+from app.models.budget import Budget
 from app.models.client import Client
 from app.models.financial_goal import FinancialGoal
 from app.models.transaction import Transaction
@@ -125,3 +126,23 @@ def get_owned_goal(
         )
 
     return goal
+
+
+def get_owned_budget(
+    budget_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Budget:
+    """Fetch a budget by id, scoped to the already-verified owned
+    client. Used by routes nested under
+    /clients/{client_id}/budgets/{budget_id}.
+    """
+    budget = db.get(Budget, budget_id)
+
+    if budget is None or budget.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found.",
+        )
+
+    return budget

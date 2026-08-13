@@ -179,6 +179,12 @@ def test_delete_client_cascades_to_accounts_and_goals(
         headers=_headers(advisor.id),
     )
 
+    api_client.post(
+        f"/clients/{client['id']}/budgets",
+        json={"category": "dining", "monthly_limit": "400.00"},
+        headers=_headers(advisor.id),
+    )
+
     delete_response = api_client.delete(
         f"/clients/{client['id']}", headers=_headers(advisor.id)
     )
@@ -191,6 +197,11 @@ def test_delete_client_cascades_to_accounts_and_goals(
         f"/clients/{client['id']}/accounts", headers=_headers(advisor.id)
     )
     assert accounts_response.status_code == 404
+
+    budgets_response = api_client.get(
+        f"/clients/{client['id']}/budgets", headers=_headers(advisor.id)
+    )
+    assert budgets_response.status_code == 404
 
 
 def test_advisor_cannot_delete_another_advisors_client(
