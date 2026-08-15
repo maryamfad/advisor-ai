@@ -8,9 +8,11 @@ from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.models.spouse import HouseholdMemberRole
 
 if TYPE_CHECKING:
     from app.models.client import Client
+    from app.models.dependent import Dependent
     from app.models.transaction import Transaction
 
 
@@ -21,6 +23,10 @@ class AccountType(enum.StrEnum):
     RETIREMENT = "retirement"
     CREDIT = "credit"
     LOAN = "loan"
+    TFSA = "tfsa"
+    RRSP = "rrsp"
+    FHSA = "fhsa"
+    RESP = "resp"
 
 
 class Account(Base):
@@ -58,7 +64,28 @@ class Account(Base):
     currency: Mapped[str] = mapped_column(
         String(3),
         nullable=False,
-        default="USD",
+        default="CAD",
+    )
+
+    owner: Mapped[HouseholdMemberRole] = mapped_column(
+        SAEnum(HouseholdMemberRole, name="household_member_role"),
+        nullable=False,
+        default=HouseholdMemberRole.CLIENT,
+    )
+
+    invest_rate: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+    )
+
+    monthly_contribution: Mapped[Decimal | None] = mapped_column(
+        Numeric(14, 2),
+        nullable=True,
+    )
+
+    resp_beneficiary_dependent_id: Mapped[int | None] = mapped_column(
+        ForeignKey("dependents.id"),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -76,4 +103,8 @@ class Account(Base):
         "Transaction",
         back_populates="account",
         cascade="all, delete-orphan",
+    )
+
+    resp_beneficiary: Mapped["Dependent | None"] = relationship(
+        "Dependent",
     )

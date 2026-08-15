@@ -45,7 +45,8 @@ def test_create_and_list_accounts(api_client: TestClient, advisor: Advisor) -> N
     created = create_response.json()
     assert created["client_id"] == client["id"]
     assert created["balance"] == "1450.32"
-    assert created["currency"] == "USD"
+    assert created["currency"] == "CAD"
+    assert created["owner"] == "client"
 
     list_response = api_client.get(
         f"/clients/{client['id']}/accounts",
@@ -56,6 +57,66 @@ def test_create_and_list_accounts(api_client: TestClient, advisor: Advisor) -> N
     accounts = list_response.json()
     assert len(accounts) == 1
     assert accounts[0]["name"] == "Everyday Checking"
+
+
+def test_create_registered_account_types(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "accounts2@example.com")
+
+    for account_type in ("tfsa", "rrsp", "fhsa", "resp"):
+        response = api_client.post(
+            f"/clients/{client['id']}/accounts",
+            json={
+                "name": account_type.upper(),
+                "account_type": account_type,
+                "invest_rate": "4.50",
+                "monthly_contribution": "300.00",
+            },
+            headers=_headers(advisor.id),
+        )
+
+        assert response.status_code == 201
+        assert response.json()["account_type"] == account_type
+        assert response.json()["invest_rate"] == "4.50"
+
+
+def test_create_resp_with_beneficiary_dependent(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "accounts3@example.com")
+
+    dependent = api_client.post(
+        f"/clients/{client['id']}/dependents",
+        json={"name": "Jamie", "date_of_birth": "2015-06-01"},
+        headers=_headers(advisor.id),
+    ).json()
+
+    response = api_client.post(
+        f"/clients/{client['id']}/accounts",
+        json={
+            "name": "Jamie's RESP",
+            "account_type": "resp",
+            "resp_beneficiary_dependent_id": dependent["id"],
+        },
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["resp_beneficiary_dependent_id"] == dependent["id"]
+
+
+def test_create_account_for_spouse(api_client: TestClient, advisor: Advisor) -> None:
+    client = _create_client(api_client, advisor.id, "accounts4@example.com")
+
+    response = api_client.post(
+        f"/clients/{client['id']}/accounts",
+        json={"name": "Spouse RRSP", "account_type": "rrsp", "owner": "spouse"},
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["owner"] == "spouse"
 
 
 def test_invalid_account_type_is_rejected(

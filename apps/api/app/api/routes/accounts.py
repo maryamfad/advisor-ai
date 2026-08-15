@@ -23,6 +23,10 @@ def create_account(
         institution=payload.institution,
         balance=payload.balance,
         currency=payload.currency,
+        owner=payload.owner,
+        invest_rate=payload.invest_rate,
+        monthly_contribution=payload.monthly_contribution,
+        resp_beneficiary_dependent_id=payload.resp_beneficiary_dependent_id,
     )
 
     db.add(account)

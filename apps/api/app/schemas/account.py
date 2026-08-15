@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
 from app.models.account import AccountType
+from app.models.spouse import HouseholdMemberRole
 
 
 class AccountBase(BaseModel):
@@ -11,7 +12,11 @@ class AccountBase(BaseModel):
     account_type: AccountType
     institution: str | None = None
     balance: Decimal = Decimal("0")
-    currency: str = "USD"
+    currency: str = "CAD"
+    owner: HouseholdMemberRole = HouseholdMemberRole.CLIENT
+    invest_rate: Decimal | None = None
+    monthly_contribution: Decimal | None = None
+    resp_beneficiary_dependent_id: int | None = None
 
 
 class AccountCreate(AccountBase):
@@ -28,6 +33,10 @@ class AccountUpdate(BaseModel):
     institution: str | None = None
     balance: Decimal | None = None
     currency: str | None = None
+    owner: HouseholdMemberRole | None = None
+    invest_rate: Decimal | None = None
+    monthly_contribution: Decimal | None = None
+    resp_beneficiary_dependent_id: int | None = None
 
 
 class AccountRead(AccountBase):
