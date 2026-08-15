@@ -54,4 +54,6 @@ def test_client_relationships_registered() -> None:
         "tasks",
         "spouse",
         "dependents",
+        "income_sources",
+        "debts",
     }

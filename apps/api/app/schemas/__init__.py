@@ -1,8 +1,14 @@
 from app.schemas.account import AccountCreate, AccountRead, AccountUpdate
 from app.schemas.budget import BudgetCreate, BudgetRead, BudgetUpdate
 from app.schemas.client import ClientCreate, ClientRead, ClientUpdate
+from app.schemas.debt import DebtCreate, DebtRead, DebtUpdate
 from app.schemas.dependent import DependentCreate, DependentRead, DependentUpdate
 from app.schemas.goal import GoalCreate, GoalRead, GoalUpdate
+from app.schemas.income_source import (
+    IncomeSourceCreate,
+    IncomeSourceRead,
+    IncomeSourceUpdate,
+)
 from app.schemas.spouse import SpouseCreate, SpouseRead, SpouseUpdate
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.transaction import (
@@ -21,12 +27,18 @@ __all__ = [
     "ClientCreate",
     "ClientRead",
     "ClientUpdate",
+    "DebtCreate",
+    "DebtRead",
+    "DebtUpdate",
     "DependentCreate",
     "DependentRead",
     "DependentUpdate",
     "GoalCreate",
     "GoalRead",
     "GoalUpdate",
+    "IncomeSourceCreate",
+    "IncomeSourceRead",
+    "IncomeSourceUpdate",
     "SpouseCreate",
     "SpouseRead",
     "SpouseUpdate",

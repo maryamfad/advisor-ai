@@ -8,8 +8,10 @@ from app.db import SessionLocal
 from app.models.account import Account
 from app.models.budget import Budget
 from app.models.client import Client
+from app.models.debt import Debt
 from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
+from app.models.income_source import IncomeSource
 from app.models.spouse import Spouse
 from app.models.task import Task
 from app.models.transaction import Transaction
@@ -191,6 +193,46 @@ def get_owned_dependent(
         )
 
     return dependent
+
+
+def get_owned_income_source(
+    income_source_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> IncomeSource:
+    """Fetch an income source by id, scoped to the already-verified
+    owned client. Used by routes nested under
+    /clients/{client_id}/income-sources/{income_source_id}.
+    """
+    income_source = db.get(IncomeSource, income_source_id)
+
+    if income_source is None or income_source.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Income source not found.",
+        )
+
+    return income_source
+
+
+def get_owned_debt(
+    debt_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Debt:
+    """Fetch a debt by id, scoped to the already-verified owned
+    client. Used by routes nested under
+    /clients/{client_id}/debts/{debt_id}.
+    """
+    debt = db.get(Debt, debt_id)
+
+    if debt is None or debt.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Debt not found.",
+        )
+
+    return debt
 
 
 def get_owned_task(
