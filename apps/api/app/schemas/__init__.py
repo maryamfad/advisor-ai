@@ -2,6 +2,7 @@ from app.schemas.account import AccountCreate, AccountRead, AccountUpdate
 from app.schemas.budget import BudgetCreate, BudgetRead, BudgetUpdate
 from app.schemas.client import ClientCreate, ClientRead, ClientUpdate
 from app.schemas.goal import GoalCreate, GoalRead, GoalUpdate
+from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionRead,
@@ -21,6 +22,9 @@ __all__ = [
     "GoalCreate",
     "GoalRead",
     "GoalUpdate",
+    "TaskCreate",
+    "TaskRead",
+    "TaskUpdate",
     "TransactionCreate",
     "TransactionRead",
     "TransactionUpdate",

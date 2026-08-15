@@ -4,6 +4,8 @@ from app.api.routes.accounts import router as accounts_router
 from app.api.routes.budgets import router as budgets_router
 from app.api.routes.clients import router as clients_router
 from app.api.routes.goals import router as goals_router
+from app.api.routes.tasks import client_tasks_router
+from app.api.routes.tasks import router as tasks_router
 from app.api.routes.transactions import router as transactions_router
 
 api_router = APIRouter()
@@ -12,3 +14,5 @@ api_router.include_router(accounts_router)
 api_router.include_router(transactions_router)
 api_router.include_router(goals_router)
 api_router.include_router(budgets_router)
+api_router.include_router(client_tasks_router)
+api_router.include_router(tasks_router)

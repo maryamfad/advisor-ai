@@ -10,6 +10,7 @@ from app.models.advisor import Advisor
 from app.models.budget import Budget
 from app.models.client import Client as ClientModel
 from app.models.financial_goal import FinancialGoal
+from app.models.task import Task
 from app.models.transaction import Transaction
 
 
@@ -37,6 +38,13 @@ def advisor() -> Generator[Advisor, None, None]:
     try:
         yield advisor
     finally:
+        # Tasks reference advisor_id directly (never null) and
+        # optionally client_id, so clear them first, before either
+        # clients or the advisor are touched.
+        db.query(Task).filter(Task.advisor_id == advisor.id).delete(
+            synchronize_session=False
+        )
+
         client_ids = [
             row[0]
             for row in db.query(ClientModel.id)

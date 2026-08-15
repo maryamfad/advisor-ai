@@ -8,6 +8,7 @@ from app.models.account import Account
 from app.models.budget import Budget
 from app.models.client import Client
 from app.models.financial_goal import FinancialGoal
+from app.models.task import Task
 from app.models.transaction import Transaction
 
 
@@ -146,3 +147,25 @@ def get_owned_budget(
         )
 
     return budget
+
+
+def get_owned_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    advisor_id: int = Depends(get_current_advisor_id),
+) -> Task:
+    """Fetch a task by id, scoped to the acting advisor.
+
+    Unlike accounts/goals/budgets, a task isn't necessarily linked to a
+    client (Task.client_id is nullable), so this checks advisor
+    ownership directly rather than chaining through get_owned_client.
+    """
+    task = db.get(Task, task_id)
+
+    if task is None or task.advisor_id != advisor_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found.",
+        )
+
+    return task
