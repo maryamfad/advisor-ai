@@ -52,4 +52,6 @@ def test_client_relationships_registered() -> None:
         "insurance_policies",
         "documents",
         "tasks",
+        "spouse",
+        "dependents",
     }

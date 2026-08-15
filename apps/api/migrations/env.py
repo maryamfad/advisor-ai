@@ -10,9 +10,11 @@ from app.models import (  # noqa: F401
     Advisor,
     Budget,
     Client,
+    Dependent,
     Document,
     FinancialGoal,
     InsurancePolicy,
+    Spouse,
     Task,
     Transaction,
 )

@@ -1,13 +1,16 @@
 from collections.abc import Generator
 
 from fastapi import Depends, Header, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models.account import Account
 from app.models.budget import Budget
 from app.models.client import Client
+from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
+from app.models.spouse import Spouse
 from app.models.task import Task
 from app.models.transaction import Transaction
 
@@ -147,6 +150,47 @@ def get_owned_budget(
         )
 
     return budget
+
+
+def get_client_spouse(
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Spouse:
+    """Fetch the already-verified owned client's spouse.
+
+    Spouse is a singular, 1:1 resource (no id in the URL, just
+    /clients/{client_id}/spouse), so this looks it up by client_id
+    rather than chaining an id-based lookup like get_owned_goal.
+    """
+    spouse = db.scalar(select(Spouse).where(Spouse.client_id == client.id))
+
+    if spouse is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Spouse not found.",
+        )
+
+    return spouse
+
+
+def get_owned_dependent(
+    dependent_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Dependent:
+    """Fetch a dependent by id, scoped to the already-verified owned
+    client. Used by routes nested under
+    /clients/{client_id}/dependents/{dependent_id}.
+    """
+    dependent = db.get(Dependent, dependent_id)
+
+    if dependent is None or dependent.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dependent not found.",
+        )
+
+    return dependent
 
 
 def get_owned_task(

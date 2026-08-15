@@ -10,9 +10,11 @@ if TYPE_CHECKING:
     from app.models.account import Account
     from app.models.advisor import Advisor
     from app.models.budget import Budget
+    from app.models.dependent import Dependent
     from app.models.document import Document
     from app.models.financial_goal import FinancialGoal
     from app.models.insurance_policy import InsurancePolicy
+    from app.models.spouse import Spouse
     from app.models.task import Task
 
 
@@ -93,4 +95,17 @@ class Client(Base):
     tasks: Mapped[list["Task"]] = relationship(
         "Task",
         back_populates="client",
+    )
+
+    spouse: Mapped["Spouse | None"] = relationship(
+        "Spouse",
+        back_populates="client",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    dependents: Mapped[list["Dependent"]] = relationship(
+        "Dependent",
+        back_populates="client",
+        cascade="all, delete-orphan",
     )
