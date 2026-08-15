@@ -14,6 +14,11 @@ from app.schemas.income_source import (
     IncomeSourceRead,
     IncomeSourceUpdate,
 )
+from app.schemas.insurance_policy import (
+    InsurancePolicyCreate,
+    InsurancePolicyRead,
+    InsurancePolicyUpdate,
+)
 from app.schemas.spouse import SpouseCreate, SpouseRead, SpouseUpdate
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.transaction import (
@@ -47,6 +52,9 @@ __all__ = [
     "IncomeSourceCreate",
     "IncomeSourceRead",
     "IncomeSourceUpdate",
+    "InsurancePolicyCreate",
+    "InsurancePolicyRead",
+    "InsurancePolicyUpdate",
     "SpouseCreate",
     "SpouseRead",
     "SpouseUpdate",

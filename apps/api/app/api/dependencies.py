@@ -13,6 +13,7 @@ from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
+from app.models.insurance_policy import InsurancePolicy
 from app.models.spouse import Spouse
 from app.models.task import Task
 from app.models.transaction import Transaction
@@ -254,6 +255,26 @@ def get_owned_financial_needs_analysis(
         )
 
     return fna
+
+
+def get_owned_insurance_policy(
+    insurance_policy_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> InsurancePolicy:
+    """Fetch an insurance policy by id, scoped to the already-verified
+    owned client. Used by routes nested under
+    /clients/{client_id}/insurance-policies/{insurance_policy_id}.
+    """
+    policy = db.get(InsurancePolicy, insurance_policy_id)
+
+    if policy is None or policy.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Insurance policy not found.",
+        )
+
+    return policy
 
 
 def get_owned_task(

@@ -3,11 +3,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
+from app.models.spouse import HouseholdMemberRole
 
 if TYPE_CHECKING:
     from app.models.client import Client
@@ -50,6 +51,32 @@ class InsurancePolicy(Base):
     policy_type: Mapped[PolicyType] = mapped_column(
         SAEnum(PolicyType, name="policy_type"),
         nullable=False,
+    )
+
+    insured_owner: Mapped[HouseholdMemberRole] = mapped_column(
+        SAEnum(HouseholdMemberRole, name="household_member_role"),
+        nullable=False,
+        default=HouseholdMemberRole.CLIENT,
+    )
+
+    policy_owner: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
+    beneficiary: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
+    surrender_value: Mapped[Decimal | None] = mapped_column(
+        Numeric(14, 2),
+        nullable=True,
+    )
+
+    policy_year: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
     )
 
     provider: Mapped[str] = mapped_column(
