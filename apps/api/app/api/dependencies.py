@@ -14,6 +14,7 @@ from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy
+from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import Spouse
 from app.models.task import Task
 from app.models.transaction import Transaction
@@ -275,6 +276,29 @@ def get_owned_insurance_policy(
         )
 
     return policy
+
+
+def get_owned_risk_questionnaire(
+    questionnaire_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> RiskQuestionnaire:
+    """Fetch a risk questionnaire by id, scoped to the already-verified
+    owned client. Used by the advisor-authenticated routes nested
+    under /clients/{client_id}/risk-questionnaire/{questionnaire_id}.
+    The public token-based routes look the row up directly by token
+    instead, with no advisor/client ownership check at all -- the
+    token itself is the credential there.
+    """
+    questionnaire = db.get(RiskQuestionnaire, questionnaire_id)
+
+    if questionnaire is None or questionnaire.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Risk questionnaire not found.",
+        )
+
+    return questionnaire
 
 
 def get_owned_task(

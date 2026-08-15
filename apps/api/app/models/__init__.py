@@ -18,6 +18,7 @@ from app.models.insurance_policy import (
     PolicyType,
     PremiumFrequency,
 )
+from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import HouseholdMemberRole, Spouse
 from app.models.task import Task, TaskStatus
 from app.models.transaction import Transaction, TransactionCategory
@@ -46,6 +47,7 @@ __all__ = [
     "PolicyStatus",
     "PolicyType",
     "PremiumFrequency",
+    "RiskQuestionnaire",
     "RiskTolerance",
     "Spouse",
     "Task",

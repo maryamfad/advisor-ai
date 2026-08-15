@@ -17,6 +17,7 @@ from app.models import (  # noqa: F401
     FinancialNeedsAnalysis,
     IncomeSource,
     InsurancePolicy,
+    RiskQuestionnaire,
     Spouse,
     Task,
     Transaction,

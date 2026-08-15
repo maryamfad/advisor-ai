@@ -19,6 +19,13 @@ from app.schemas.insurance_policy import (
     InsurancePolicyRead,
     InsurancePolicyUpdate,
 )
+from app.schemas.risk_questionnaire import (
+    QuestionnaireCatalog,
+    RiskQuestionnaireCreateResult,
+    RiskQuestionnaireRead,
+    SubmitAnswersRequest,
+    SubmitResultResponse,
+)
 from app.schemas.spouse import SpouseCreate, SpouseRead, SpouseUpdate
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.transaction import (
@@ -55,6 +62,11 @@ __all__ = [
     "InsurancePolicyCreate",
     "InsurancePolicyRead",
     "InsurancePolicyUpdate",
+    "QuestionnaireCatalog",
+    "RiskQuestionnaireCreateResult",
+    "RiskQuestionnaireRead",
+    "SubmitAnswersRequest",
+    "SubmitResultResponse",
     "SpouseCreate",
     "SpouseRead",
     "SpouseUpdate",

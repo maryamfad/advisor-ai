@@ -12,6 +12,10 @@ from app.api.routes.financial_needs_analyses import (
 from app.api.routes.goals import router as goals_router
 from app.api.routes.income_sources import router as income_sources_router
 from app.api.routes.insurance_policies import router as insurance_policies_router
+from app.api.routes.risk_questionnaire import (
+    public_router as risk_questionnaire_public_router,
+)
+from app.api.routes.risk_questionnaire import router as risk_questionnaire_router
 from app.api.routes.spouse import router as spouse_router
 from app.api.routes.tasks import client_tasks_router
 from app.api.routes.tasks import router as tasks_router
@@ -32,3 +36,5 @@ api_router.include_router(income_sources_router)
 api_router.include_router(debts_router)
 api_router.include_router(financial_needs_analyses_router)
 api_router.include_router(insurance_policies_router)
+api_router.include_router(risk_questionnaire_router)
+api_router.include_router(risk_questionnaire_public_router)

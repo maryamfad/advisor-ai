@@ -13,6 +13,7 @@ from app.models.financial_goal import FinancialGoal, GoalStatus
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy, PolicyStatus, PolicyType
+from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import HouseholdMemberRole
 from app.models.transaction import Transaction
 from app.schemas.advice import (
@@ -99,6 +100,15 @@ def get_client_advice(
         select(FinancialNeedsAnalysis)
         .where(FinancialNeedsAnalysis.client_id == client.id)
         .order_by(FinancialNeedsAnalysis.conducted_at.desc())
+        .limit(1)
+    )
+    latest_completed_questionnaire = db.scalar(
+        select(RiskQuestionnaire)
+        .where(
+            RiskQuestionnaire.client_id == client.id,
+            RiskQuestionnaire.completed_at.is_not(None),
+        )
+        .order_by(RiskQuestionnaire.completed_at.desc())
         .limit(1)
     )
     dependents = list(client.dependents)
@@ -188,13 +198,14 @@ def get_client_advice(
     coverage_gap = calculate_insurance_gap(target_coverage, existing_coverage)
 
     age = _calculate_age(client.date_of_birth)
-    # TODO(risk questionnaire): once RiskQuestionnaire lands, prefer its
-    # latest completed risk_tolerance over the FNA's here.
-    risk_tolerance = (
-        latest_fna.risk_tolerance.value
-        if latest_fna and latest_fna.risk_tolerance
-        else None
-    )
+    # A formally scored questionnaire is authoritative over the FNA
+    # form's self-rated checkbox when both are on file.
+    if latest_completed_questionnaire and latest_completed_questionnaire.risk_tolerance:
+        risk_tolerance = latest_completed_questionnaire.risk_tolerance.value
+    elif latest_fna and latest_fna.risk_tolerance:
+        risk_tolerance = latest_fna.risk_tolerance.value
+    else:
+        risk_tolerance = None
 
     type_recommendation = recommend_life_insurance_type(
         age=age,
