@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import pytest
+
 from app.services.financial_calculations import (
     calculate_budget_variance,
     calculate_cash_flow,
@@ -8,6 +10,7 @@ from app.services.financial_calculations import (
     calculate_monthly_income,
     calculate_net_worth,
     calculate_savings_rate,
+    normalize_income_to_monthly,
 )
 
 
@@ -123,3 +126,29 @@ class TestCalculateBudgetVariance:
     def test_exactly_on_budget_is_zero(self) -> None:
         result = calculate_budget_variance(Decimal("400"), Decimal("400"))
         assert result == Decimal("0.00")
+
+
+class TestNormalizeIncomeToMonthly:
+    def test_weekly(self) -> None:
+        result = normalize_income_to_monthly(Decimal("1000"), "weekly")
+        assert result == Decimal("4333.33")
+
+    def test_biweekly(self) -> None:
+        result = normalize_income_to_monthly(Decimal("2000"), "biweekly")
+        assert result == Decimal("4333.33")
+
+    def test_semi_monthly(self) -> None:
+        result = normalize_income_to_monthly(Decimal("2500"), "semi_monthly")
+        assert result == Decimal("5000.00")
+
+    def test_monthly_is_a_passthrough(self) -> None:
+        result = normalize_income_to_monthly(Decimal("6000"), "monthly")
+        assert result == Decimal("6000.00")
+
+    def test_annually(self) -> None:
+        result = normalize_income_to_monthly(Decimal("72000"), "annually")
+        assert result == Decimal("6000.00")
+
+    def test_unrecognized_frequency_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unrecognized income frequency"):
+            normalize_income_to_monthly(Decimal("1000"), "hourly")

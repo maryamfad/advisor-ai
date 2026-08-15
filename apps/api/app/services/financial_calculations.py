@@ -100,3 +100,28 @@ def calculate_budget_variance(
     """Budget limit minus actual spend. Positive = under budget,
     negative = over budget."""
     return _round(monthly_limit - actual_spent)
+
+
+MONTHS_PER_YEAR = 12
+WEEKS_PER_YEAR = Decimal("52")
+BIWEEKLY_PERIODS_PER_YEAR = Decimal("26")
+
+
+def normalize_income_to_monthly(gross_amount: Decimal, frequency: str) -> Decimal:
+    """Converts a gross income figure at a given pay frequency to its
+    monthly equivalent. frequency is one of "weekly", "biweekly",
+    "semi_monthly", "monthly", "annually" (IncomeSource's
+    IncomeFrequency values, passed as a plain string so this module
+    stays free of any ORM/model import)."""
+    if frequency == "weekly":
+        return _round(gross_amount * WEEKS_PER_YEAR / MONTHS_PER_YEAR)
+    if frequency == "biweekly":
+        return _round(gross_amount * BIWEEKLY_PERIODS_PER_YEAR / MONTHS_PER_YEAR)
+    if frequency == "semi_monthly":
+        return _round(gross_amount * 2)
+    if frequency == "monthly":
+        return _round(gross_amount)
+    if frequency == "annually":
+        return _round(gross_amount / MONTHS_PER_YEAR)
+
+    raise ValueError(f"Unrecognized income frequency: {frequency!r}")
