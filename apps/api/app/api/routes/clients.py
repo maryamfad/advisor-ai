@@ -31,6 +31,13 @@ def create_client(
         last_name=payload.last_name,
         email=payload.email,
         phone=payload.phone,
+        date_of_birth=payload.date_of_birth,
+        marital_status=payload.marital_status,
+        first_time_home_buyer=payload.first_time_home_buyer,
+        retirement_age=payload.retirement_age,
+        life_expectancy_age=payload.life_expectancy_age,
+        desired_retirement_monthly_income=payload.desired_retirement_monthly_income,
+        desired_retirement_income_percent=payload.desired_retirement_income_percent,
     )
 
     db.add(client)

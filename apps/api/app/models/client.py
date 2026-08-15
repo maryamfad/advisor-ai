@@ -1,7 +1,10 @@
-from datetime import datetime
+import enum
+from datetime import date, datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -19,6 +22,14 @@ if TYPE_CHECKING:
     from app.models.insurance_policy import InsurancePolicy
     from app.models.spouse import Spouse
     from app.models.task import Task
+
+
+class MaritalStatus(enum.StrEnum):
+    SINGLE = "single"
+    MARRIED = "married"
+    COMMON_LAW = "common_law"
+    DIVORCED = "divorced"
+    WIDOWED = "widowed"
 
 
 class Client(Base):
@@ -51,6 +62,42 @@ class Client(Base):
 
     phone: Mapped[str | None] = mapped_column(
         String(30),
+        nullable=True,
+    )
+
+    date_of_birth: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    marital_status: Mapped[MaritalStatus | None] = mapped_column(
+        SAEnum(MaritalStatus, name="marital_status"),
+        nullable=True,
+    )
+
+    first_time_home_buyer: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    retirement_age: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    life_expectancy_age: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    desired_retirement_monthly_income: Mapped[Decimal | None] = mapped_column(
+        Numeric(14, 2),
+        nullable=True,
+    )
+
+    desired_retirement_income_percent: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
         nullable=True,
     )
 

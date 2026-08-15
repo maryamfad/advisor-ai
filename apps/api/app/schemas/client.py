@@ -1,6 +1,9 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+from app.models.client import MaritalStatus
 
 
 class ClientBase(BaseModel):
@@ -8,6 +11,13 @@ class ClientBase(BaseModel):
     last_name: str
     email: EmailStr
     phone: str | None = None
+    date_of_birth: date | None = None
+    marital_status: MaritalStatus | None = None
+    first_time_home_buyer: bool = False
+    retirement_age: int | None = None
+    life_expectancy_age: int | None = None
+    desired_retirement_monthly_income: Decimal | None = None
+    desired_retirement_income_percent: Decimal | None = None
 
 
 class ClientCreate(ClientBase):
@@ -23,6 +33,13 @@ class ClientUpdate(BaseModel):
     last_name: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
+    date_of_birth: date | None = None
+    marital_status: MaritalStatus | None = None
+    first_time_home_buyer: bool | None = None
+    retirement_age: int | None = None
+    life_expectancy_age: int | None = None
+    desired_retirement_monthly_income: Decimal | None = None
+    desired_retirement_income_percent: Decimal | None = None
 
 
 class ClientRead(ClientBase):

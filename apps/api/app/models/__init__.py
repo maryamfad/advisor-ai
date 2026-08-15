@@ -1,7 +1,7 @@
 from app.models.account import Account, AccountType
 from app.models.advisor import Advisor
 from app.models.budget import Budget
-from app.models.client import Client
+from app.models.client import Client, MaritalStatus
 from app.models.debt import Debt, DebtType
 from app.models.dependent import Dependent
 from app.models.document import Document, DocumentCategory
@@ -42,6 +42,7 @@ __all__ = [
     "IncomeSource",
     "InsurancePolicy",
     "InvestorRating",
+    "MaritalStatus",
     "PolicyStatus",
     "PolicyType",
     "PremiumFrequency",

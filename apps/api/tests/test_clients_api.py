@@ -52,6 +52,76 @@ def test_create_and_get_client(api_client: TestClient, advisor: Advisor) -> None
     assert get_response.json()["email"] == "sarah.chen@example.com"
 
 
+def test_create_client_with_household_planning_fields(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    response = api_client.post(
+        "/clients",
+        json={
+            "first_name": "Sarah",
+            "last_name": "Chen",
+            "email": "sarah.planning@example.com",
+            "date_of_birth": "1988-04-12",
+            "marital_status": "married",
+            "first_time_home_buyer": True,
+            "retirement_age": 65,
+            "life_expectancy_age": 90,
+            "desired_retirement_monthly_income": "5000.00",
+        },
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 201
+    created = response.json()
+    assert created["date_of_birth"] == "1988-04-12"
+    assert created["marital_status"] == "married"
+    assert created["first_time_home_buyer"] is True
+    assert created["retirement_age"] == 65
+
+
+def test_first_time_home_buyer_defaults_false(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    response = api_client.post(
+        "/clients",
+        json={
+            "first_name": "Sarah",
+            "last_name": "Chen",
+            "email": "sarah.default@example.com",
+        },
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["first_time_home_buyer"] is False
+    assert response.json()["date_of_birth"] is None
+
+
+def test_update_client_household_planning_fields(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    created = api_client.post(
+        "/clients",
+        json={
+            "first_name": "Sarah",
+            "last_name": "Chen",
+            "email": "sarah.update@example.com",
+        },
+        headers=_headers(advisor.id),
+    ).json()
+
+    response = api_client.patch(
+        f"/clients/{created['id']}",
+        json={"marital_status": "married", "retirement_age": 60},
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["marital_status"] == "married"
+    assert response.json()["retirement_age"] == 60
+    assert response.json()["first_name"] == "Sarah"  # untouched
+
+
 def test_list_clients_scoped_to_advisor(
     api_client: TestClient, advisor: Advisor
 ) -> None:
