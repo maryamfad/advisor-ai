@@ -14,6 +14,7 @@ from app.models import (  # noqa: F401
     Dependent,
     Document,
     FinancialGoal,
+    FinancialNeedsAnalysis,
     IncomeSource,
     InsurancePolicy,
     Spouse,

@@ -6,6 +6,11 @@ from app.models.debt import Debt, DebtType
 from app.models.dependent import Dependent
 from app.models.document import Document, DocumentCategory
 from app.models.financial_goal import FinancialGoal, GoalStatus, GoalType
+from app.models.financial_needs_analysis import (
+    FinancialNeedsAnalysis,
+    InvestorRating,
+    RiskTolerance,
+)
 from app.models.income_source import IncomeFrequency, IncomeSource
 from app.models.insurance_policy import (
     InsurancePolicy,
@@ -29,15 +34,18 @@ __all__ = [
     "Document",
     "DocumentCategory",
     "FinancialGoal",
+    "FinancialNeedsAnalysis",
     "GoalStatus",
     "GoalType",
     "HouseholdMemberRole",
     "IncomeFrequency",
     "IncomeSource",
     "InsurancePolicy",
+    "InvestorRating",
     "PolicyStatus",
     "PolicyType",
     "PremiumFrequency",
+    "RiskTolerance",
     "Spouse",
     "Task",
     "TaskStatus",

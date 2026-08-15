@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.dependent import Dependent
     from app.models.document import Document
     from app.models.financial_goal import FinancialGoal
+    from app.models.financial_needs_analysis import FinancialNeedsAnalysis
     from app.models.income_source import IncomeSource
     from app.models.insurance_policy import InsurancePolicy
     from app.models.spouse import Spouse
@@ -120,6 +121,12 @@ class Client(Base):
 
     debts: Mapped[list["Debt"]] = relationship(
         "Debt",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+
+    financial_needs_analyses: Mapped[list["FinancialNeedsAnalysis"]] = relationship(
+        "FinancialNeedsAnalysis",
         back_populates="client",
         cascade="all, delete-orphan",
     )

@@ -11,6 +11,7 @@ from app.models.client import Client
 from app.models.debt import Debt
 from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
+from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
 from app.models.spouse import Spouse
 from app.models.task import Task
@@ -233,6 +234,26 @@ def get_owned_debt(
         )
 
     return debt
+
+
+def get_owned_financial_needs_analysis(
+    financial_needs_analysis_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> FinancialNeedsAnalysis:
+    """Fetch a financial needs analysis by id, scoped to the
+    already-verified owned client. Used by routes nested under
+    /clients/{client_id}/financial-needs-analyses/{id}.
+    """
+    fna = db.get(FinancialNeedsAnalysis, financial_needs_analysis_id)
+
+    if fna is None or fna.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Financial needs analysis not found.",
+        )
+
+    return fna
 
 
 def get_owned_task(

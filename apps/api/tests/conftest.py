@@ -12,6 +12,7 @@ from app.models.client import Client as ClientModel
 from app.models.debt import Debt
 from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
+from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
 from app.models.spouse import Spouse
 from app.models.task import Task
@@ -94,6 +95,9 @@ def advisor() -> Generator[Advisor, None, None]:
             db.query(Debt).filter(Debt.client_id.in_(client_ids)).delete(
                 synchronize_session=False
             )
+            db.query(FinancialNeedsAnalysis).filter(
+                FinancialNeedsAnalysis.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
             db.query(ClientModel).filter(
                 ClientModel.id.in_(client_ids)
             ).delete(synchronize_session=False)

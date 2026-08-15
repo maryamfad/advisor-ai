@@ -56,4 +56,5 @@ def test_client_relationships_registered() -> None:
         "dependents",
         "income_sources",
         "debts",
+        "financial_needs_analyses",
     }
