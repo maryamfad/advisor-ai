@@ -20,6 +20,7 @@ def create_budget(
         client_id=client.id,
         category=payload.category,
         monthly_limit=payload.monthly_limit,
+        is_discretionary=payload.is_discretionary,
     )
 
     db.add(budget)

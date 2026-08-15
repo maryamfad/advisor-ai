@@ -25,6 +25,12 @@ class TransactionCategory(enum.StrEnum):
     ENTERTAINMENT = "entertainment"
     SAVINGS_TRANSFER = "savings_transfer"
     DEBT_PAYMENT = "debt_payment"
+    CHILDCARE = "childcare"
+    SUBSCRIPTIONS = "subscriptions"
+    CHARITABLE_GIVING = "charitable_giving"
+    CLOTHING = "clothing"
+    PERSONAL_CARE = "personal_care"
+    ALIMONY_CHILD_SUPPORT = "alimony_child_support"
     OTHER = "other"
 
 

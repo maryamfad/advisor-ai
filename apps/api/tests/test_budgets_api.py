@@ -51,6 +51,35 @@ def test_create_and_list_budgets(api_client: TestClient, advisor: Advisor) -> No
     assert len(budgets) == 1
 
 
+def test_budget_is_discretionary_defaults_true(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "budget_disc1@example.com")
+
+    created = _create_budget(api_client, advisor.id, client["id"])
+    assert created["is_discretionary"] is True
+
+
+def test_create_non_discretionary_budget_with_new_category(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "budget_disc2@example.com")
+
+    response = api_client.post(
+        f"/clients/{client['id']}/budgets",
+        json={
+            "category": "childcare",
+            "monthly_limit": "1200.00",
+            "is_discretionary": False,
+        },
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 201
+    assert response.json()["category"] == "childcare"
+    assert response.json()["is_discretionary"] is False
+
+
 def test_invalid_budget_category_is_rejected(
     api_client: TestClient, advisor: Advisor
 ) -> None:

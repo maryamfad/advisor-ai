@@ -9,6 +9,7 @@ from app.models.transaction import TransactionCategory
 class BudgetBase(BaseModel):
     category: TransactionCategory
     monthly_limit: Decimal
+    is_discretionary: bool = True
 
 
 class BudgetCreate(BudgetBase):
@@ -22,6 +23,7 @@ class BudgetUpdate(BaseModel):
 
     category: TransactionCategory | None = None
     monthly_limit: Decimal | None = None
+    is_discretionary: bool | None = None
 
 
 class BudgetRead(BudgetBase):
