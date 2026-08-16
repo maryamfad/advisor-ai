@@ -13,6 +13,7 @@ from app.models.debt import Debt
 from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
+from app.models.financial_plan import FinancialPlan, FinancialPlanActionItem
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy
 from app.models.risk_questionnaire import RiskQuestionnaire
@@ -106,6 +107,21 @@ def advisor() -> Generator[Advisor, None, None]:
             db.query(RiskQuestionnaire).filter(
                 RiskQuestionnaire.client_id.in_(client_ids)
             ).delete(synchronize_session=False)
+
+            plan_ids = [
+                row[0]
+                for row in db.query(FinancialPlan.id)
+                .filter(FinancialPlan.client_id.in_(client_ids))
+                .all()
+            ]
+            if plan_ids:
+                db.query(FinancialPlanActionItem).filter(
+                    FinancialPlanActionItem.financial_plan_id.in_(plan_ids)
+                ).delete(synchronize_session=False)
+            db.query(FinancialPlan).filter(
+                FinancialPlan.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
+
             db.query(ClientModel).filter(
                 ClientModel.id.in_(client_ids)
             ).delete(synchronize_session=False)

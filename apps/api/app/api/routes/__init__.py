@@ -9,6 +9,7 @@ from app.api.routes.dependents import router as dependents_router
 from app.api.routes.financial_needs_analyses import (
     router as financial_needs_analyses_router,
 )
+from app.api.routes.financial_plans import router as financial_plans_router
 from app.api.routes.goals import router as goals_router
 from app.api.routes.income_sources import router as income_sources_router
 from app.api.routes.insurance_policies import router as insurance_policies_router
@@ -38,3 +39,4 @@ api_router.include_router(financial_needs_analyses_router)
 api_router.include_router(insurance_policies_router)
 api_router.include_router(risk_questionnaire_router)
 api_router.include_router(risk_questionnaire_public_router)
+api_router.include_router(financial_plans_router)

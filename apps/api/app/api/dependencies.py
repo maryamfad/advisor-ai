@@ -12,6 +12,7 @@ from app.models.debt import Debt
 from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
+from app.models.financial_plan import FinancialPlan, FinancialPlanActionItem
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy
 from app.models.risk_questionnaire import RiskQuestionnaire
@@ -299,6 +300,46 @@ def get_owned_risk_questionnaire(
         )
 
     return questionnaire
+
+
+def get_owned_financial_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> FinancialPlan:
+    """Fetch a financial plan by id, scoped to the already-verified
+    owned client. Used by routes nested under
+    /clients/{client_id}/financial-plans/{plan_id}/....
+    """
+    plan = db.get(FinancialPlan, plan_id)
+
+    if plan is None or plan.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Financial plan not found.",
+        )
+
+    return plan
+
+
+def get_owned_financial_plan_action_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    plan: FinancialPlan = Depends(get_owned_financial_plan),
+) -> FinancialPlanActionItem:
+    """Fetch an action item by id, scoped to the already-verified
+    owned plan. Used by
+    /clients/{client_id}/financial-plans/{plan_id}/action-items/{item_id}.
+    """
+    item = db.get(FinancialPlanActionItem, item_id)
+
+    if item is None or item.financial_plan_id != plan.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Financial plan action item not found.",
+        )
+
+    return item
 
 
 def get_owned_task(

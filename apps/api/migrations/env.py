@@ -15,6 +15,8 @@ from app.models import (  # noqa: F401
     Document,
     FinancialGoal,
     FinancialNeedsAnalysis,
+    FinancialPlan,
+    FinancialPlanActionItem,
     IncomeSource,
     InsurancePolicy,
     RiskQuestionnaire,

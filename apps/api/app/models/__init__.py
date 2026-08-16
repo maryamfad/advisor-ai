@@ -11,6 +11,12 @@ from app.models.financial_needs_analysis import (
     InvestorRating,
     RiskTolerance,
 )
+from app.models.financial_plan import (
+    ActionItemCategory,
+    ActionItemStatus,
+    FinancialPlan,
+    FinancialPlanActionItem,
+)
 from app.models.income_source import IncomeFrequency, IncomeSource
 from app.models.insurance_policy import (
     InsurancePolicy,
@@ -26,6 +32,8 @@ from app.models.transaction import Transaction, TransactionCategory
 __all__ = [
     "Account",
     "AccountType",
+    "ActionItemCategory",
+    "ActionItemStatus",
     "Advisor",
     "Budget",
     "Client",
@@ -36,6 +44,8 @@ __all__ = [
     "DocumentCategory",
     "FinancialGoal",
     "FinancialNeedsAnalysis",
+    "FinancialPlan",
+    "FinancialPlanActionItem",
     "GoalStatus",
     "GoalType",
     "HouseholdMemberRole",

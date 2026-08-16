@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from app.models.document import Document
     from app.models.financial_goal import FinancialGoal
     from app.models.financial_needs_analysis import FinancialNeedsAnalysis
+    from app.models.financial_plan import FinancialPlan
     from app.models.income_source import IncomeSource
     from app.models.insurance_policy import InsurancePolicy
     from app.models.risk_questionnaire import RiskQuestionnaire
@@ -181,6 +182,12 @@ class Client(Base):
 
     risk_questionnaires: Mapped[list["RiskQuestionnaire"]] = relationship(
         "RiskQuestionnaire",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+
+    financial_plans: Mapped[list["FinancialPlan"]] = relationship(
+        "FinancialPlan",
         back_populates="client",
         cascade="all, delete-orphan",
     )

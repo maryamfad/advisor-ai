@@ -8,6 +8,11 @@ from app.schemas.financial_needs_analysis import (
     FinancialNeedsAnalysisRead,
     FinancialNeedsAnalysisUpdate,
 )
+from app.schemas.financial_plan import (
+    FinancialPlanActionItemRead,
+    FinancialPlanActionItemUpdate,
+    FinancialPlanRead,
+)
 from app.schemas.goal import GoalCreate, GoalRead, GoalUpdate
 from app.schemas.income_source import (
     IncomeSourceCreate,
@@ -53,6 +58,9 @@ __all__ = [
     "FinancialNeedsAnalysisCreate",
     "FinancialNeedsAnalysisRead",
     "FinancialNeedsAnalysisUpdate",
+    "FinancialPlanActionItemRead",
+    "FinancialPlanActionItemUpdate",
+    "FinancialPlanRead",
     "GoalCreate",
     "GoalRead",
     "GoalUpdate",
