@@ -11,6 +11,7 @@ import { FnaTab } from '@/features/fna/FnaTab'
 import { AdviceTab } from '@/features/advice/AdviceTab'
 import { RiskQuestionnaireTab } from '@/features/riskQuestionnaire/RiskQuestionnaireTab'
 import { FinancialPlanTab } from '@/features/financialPlan/FinancialPlanTab'
+import { FundsTab } from '@/features/funds/FundsTab'
 import { ComingSoonTab } from '@/features/clients/ComingSoonTab'
 
 const TABS = [
@@ -95,7 +96,7 @@ export function ClientDetailPage() {
           <FinancialPlanTab clientId={id} />
         </TabsContent>
         <TabsContent value="funds">
-          <ComingSoonTab label="Funds" />
+          <FundsTab clientId={id} />
         </TabsContent>
         <TabsContent value="assistant">
           <ComingSoonTab label="AI assistant" />
