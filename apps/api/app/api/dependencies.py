@@ -18,6 +18,7 @@ from app.models.insurance_policy import InsurancePolicy
 from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import Spouse
 from app.models.task import Task
+from app.models.tracked_fund import ClientTrackedFund, TrackedFund
 from app.models.transaction import Transaction
 
 
@@ -340,6 +341,55 @@ def get_owned_financial_plan_action_item(
         )
 
     return item
+
+
+def get_owned_tracked_fund(
+    tracked_fund_id: int,
+    db: Session = Depends(get_db),
+    advisor_id: int = Depends(get_current_advisor_id),
+) -> TrackedFund:
+    """Fetch a catalog entry by id, scoped to the acting advisor.
+
+    Advisor-scoped the same way get_owned_task is: TrackedFund has no
+    client_id (it's a shared catalog, not per-client), so ownership is
+    checked directly against advisor_id.
+    """
+    tracked_fund = db.get(TrackedFund, tracked_fund_id)
+
+    if tracked_fund is None or tracked_fund.advisor_id != advisor_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tracked fund not found.",
+        )
+
+    return tracked_fund
+
+
+def get_owned_client_tracked_fund(
+    tracked_fund_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> ClientTrackedFund:
+    """Fetch a client's fund selection by tracked_fund_id, scoped to
+    the already-verified owned client. Used by
+    /clients/{client_id}/tracked-funds/{tracked_fund_id} (DELETE) --
+    the resource here is "is this fund selected for this client,"
+    identified by tracked_fund_id rather than the join row's own id.
+    """
+    selection = db.scalar(
+        select(ClientTrackedFund).where(
+            ClientTrackedFund.client_id == client.id,
+            ClientTrackedFund.tracked_fund_id == tracked_fund_id,
+        )
+    )
+
+    if selection is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tracked fund is not selected for this client.",
+        )
+
+    return selection
 
 
 def get_owned_task(

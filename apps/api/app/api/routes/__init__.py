@@ -20,6 +20,8 @@ from app.api.routes.risk_questionnaire import router as risk_questionnaire_route
 from app.api.routes.spouse import router as spouse_router
 from app.api.routes.tasks import client_tasks_router
 from app.api.routes.tasks import router as tasks_router
+from app.api.routes.tracked_funds import client_router as tracked_funds_client_router
+from app.api.routes.tracked_funds import router as tracked_funds_router
 from app.api.routes.transactions import router as transactions_router
 
 api_router = APIRouter()
@@ -40,3 +42,5 @@ api_router.include_router(insurance_policies_router)
 api_router.include_router(risk_questionnaire_router)
 api_router.include_router(risk_questionnaire_public_router)
 api_router.include_router(financial_plans_router)
+api_router.include_router(tracked_funds_router)
+api_router.include_router(tracked_funds_client_router)

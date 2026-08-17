@@ -17,6 +17,7 @@ from app.models.financial_plan import (
     FinancialPlan,
     FinancialPlanActionItem,
 )
+from app.models.fund_price_history import FundPriceHistory
 from app.models.income_source import IncomeFrequency, IncomeSource
 from app.models.insurance_policy import (
     InsurancePolicy,
@@ -27,6 +28,7 @@ from app.models.insurance_policy import (
 from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import HouseholdMemberRole, Spouse
 from app.models.task import Task, TaskStatus
+from app.models.tracked_fund import ClientTrackedFund, FundType, TrackedFund
 from app.models.transaction import Transaction, TransactionCategory
 
 __all__ = [
@@ -37,6 +39,7 @@ __all__ = [
     "Advisor",
     "Budget",
     "Client",
+    "ClientTrackedFund",
     "Debt",
     "DebtType",
     "Dependent",
@@ -46,6 +49,8 @@ __all__ = [
     "FinancialNeedsAnalysis",
     "FinancialPlan",
     "FinancialPlanActionItem",
+    "FundPriceHistory",
+    "FundType",
     "GoalStatus",
     "GoalType",
     "HouseholdMemberRole",
@@ -62,6 +67,7 @@ __all__ = [
     "Spouse",
     "Task",
     "TaskStatus",
+    "TrackedFund",
     "Transaction",
     "TransactionCategory",
 ]

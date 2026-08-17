@@ -14,11 +14,13 @@ from app.models.dependent import Dependent
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.financial_plan import FinancialPlan, FinancialPlanActionItem
+from app.models.fund_price_history import FundPriceHistory
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy
 from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import Spouse
 from app.models.task import Task
+from app.models.tracked_fund import ClientTrackedFund, TrackedFund
 from app.models.transaction import Transaction
 
 
@@ -122,9 +124,31 @@ def advisor() -> Generator[Advisor, None, None]:
                 FinancialPlan.client_id.in_(client_ids)
             ).delete(synchronize_session=False)
 
+            db.query(ClientTrackedFund).filter(
+                ClientTrackedFund.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
+
             db.query(ClientModel).filter(
                 ClientModel.id.in_(client_ids)
             ).delete(synchronize_session=False)
+
+        # TrackedFund is advisor-scoped (a shared catalog, like Task),
+        # not client-scoped -- clear its own children (FundPriceHistory,
+        # and any ClientTrackedFund rows already cleared above) before
+        # the catalog entries themselves, then before the advisor.
+        tracked_fund_ids = [
+            row[0]
+            for row in db.query(TrackedFund.id)
+            .filter(TrackedFund.advisor_id == advisor.id)
+            .all()
+        ]
+        if tracked_fund_ids:
+            db.query(FundPriceHistory).filter(
+                FundPriceHistory.tracked_fund_id.in_(tracked_fund_ids)
+            ).delete(synchronize_session=False)
+        db.query(TrackedFund).filter(TrackedFund.advisor_id == advisor.id).delete(
+            synchronize_session=False
+        )
 
         db.delete(advisor)
         db.commit()

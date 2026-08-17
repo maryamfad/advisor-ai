@@ -10,6 +10,7 @@ from app.models import (  # noqa: F401
     Advisor,
     Budget,
     Client,
+    ClientTrackedFund,
     Debt,
     Dependent,
     Document,
@@ -17,11 +18,13 @@ from app.models import (  # noqa: F401
     FinancialNeedsAnalysis,
     FinancialPlan,
     FinancialPlanActionItem,
+    FundPriceHistory,
     IncomeSource,
     InsurancePolicy,
     RiskQuestionnaire,
     Spouse,
     Task,
+    TrackedFund,
     Transaction,
 )
 

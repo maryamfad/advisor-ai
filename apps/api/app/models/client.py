@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from app.models.risk_questionnaire import RiskQuestionnaire
     from app.models.spouse import Spouse
     from app.models.task import Task
+    from app.models.tracked_fund import ClientTrackedFund
 
 
 class MaritalStatus(enum.StrEnum):
@@ -188,6 +189,12 @@ class Client(Base):
 
     financial_plans: Mapped[list["FinancialPlan"]] = relationship(
         "FinancialPlan",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+
+    client_tracked_funds: Mapped[list["ClientTrackedFund"]] = relationship(
+        "ClientTrackedFund",
         back_populates="client",
         cascade="all, delete-orphan",
     )

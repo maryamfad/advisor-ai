@@ -33,6 +33,13 @@ from app.schemas.risk_questionnaire import (
 )
 from app.schemas.spouse import SpouseCreate, SpouseRead, SpouseUpdate
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
+from app.schemas.tracked_fund import (
+    ClientTrackedFundCreate,
+    ClientTrackedFundRead,
+    FundPerformanceResponse,
+    TrackedFundCreate,
+    TrackedFundRead,
+)
 from app.schemas.transaction import (
     TransactionCreate,
     TransactionRead,
@@ -81,6 +88,11 @@ __all__ = [
     "TaskCreate",
     "TaskRead",
     "TaskUpdate",
+    "ClientTrackedFundCreate",
+    "ClientTrackedFundRead",
+    "FundPerformanceResponse",
+    "TrackedFundCreate",
+    "TrackedFundRead",
     "TransactionCreate",
     "TransactionRead",
     "TransactionUpdate",
