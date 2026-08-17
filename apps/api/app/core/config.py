@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
     public_base_url: str = "http://localhost:8000"
+    cors_allowed_origins: list[str] = ["http://localhost:5173"]
     # Optional -- fetch_daily_prices() raises a clear
     # MarketDataUnavailableError if this isn't set, rather than the
     # app failing to start without one.
