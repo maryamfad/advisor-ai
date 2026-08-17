@@ -60,4 +60,5 @@ def test_client_relationships_registered() -> None:
         "risk_questionnaires",
         "financial_plans",
         "client_tracked_funds",
+        "ai_conversations",
     }

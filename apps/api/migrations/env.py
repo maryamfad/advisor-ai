@@ -8,6 +8,8 @@ from app.db import Base
 from app.models import (  # noqa: F401
     Account,
     Advisor,
+    AiConversation,
+    AiMessage,
     Budget,
     Client,
     ClientTrackedFund,

@@ -7,6 +7,7 @@ from app.db import SessionLocal
 from app.main import app
 from app.models.account import Account
 from app.models.advisor import Advisor
+from app.models.ai_conversation import AiConversation, AiMessage
 from app.models.budget import Budget
 from app.models.client import Client as ClientModel
 from app.models.debt import Debt
@@ -126,6 +127,20 @@ def advisor() -> Generator[Advisor, None, None]:
 
             db.query(ClientTrackedFund).filter(
                 ClientTrackedFund.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
+
+            conversation_ids = [
+                row[0]
+                for row in db.query(AiConversation.id)
+                .filter(AiConversation.client_id.in_(client_ids))
+                .all()
+            ]
+            if conversation_ids:
+                db.query(AiMessage).filter(
+                    AiMessage.conversation_id.in_(conversation_ids)
+                ).delete(synchronize_session=False)
+            db.query(AiConversation).filter(
+                AiConversation.client_id.in_(client_ids)
             ).delete(synchronize_session=False)
 
             db.query(ClientModel).filter(

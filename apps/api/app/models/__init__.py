@@ -1,5 +1,6 @@
 from app.models.account import Account, AccountType
 from app.models.advisor import Advisor
+from app.models.ai_conversation import AiConversation, AiMessage, MessageRole
 from app.models.budget import Budget
 from app.models.client import Client, MaritalStatus
 from app.models.debt import Debt, DebtType
@@ -37,6 +38,8 @@ __all__ = [
     "ActionItemCategory",
     "ActionItemStatus",
     "Advisor",
+    "AiConversation",
+    "AiMessage",
     "Budget",
     "Client",
     "ClientTrackedFund",
@@ -59,6 +62,7 @@ __all__ = [
     "InsurancePolicy",
     "InvestorRating",
     "MaritalStatus",
+    "MessageRole",
     "PolicyStatus",
     "PolicyType",
     "PremiumFrequency",

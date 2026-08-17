@@ -12,6 +12,7 @@ from app.db import Base
 if TYPE_CHECKING:
     from app.models.account import Account
     from app.models.advisor import Advisor
+    from app.models.ai_conversation import AiConversation
     from app.models.budget import Budget
     from app.models.debt import Debt
     from app.models.dependent import Dependent
@@ -195,6 +196,12 @@ class Client(Base):
 
     client_tracked_funds: Mapped[list["ClientTrackedFund"]] = relationship(
         "ClientTrackedFund",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+
+    ai_conversations: Mapped[list["AiConversation"]] = relationship(
+        "AiConversation",
         back_populates="client",
         cascade="all, delete-orphan",
     )
