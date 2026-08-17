@@ -115,6 +115,26 @@ def test_advisor_cannot_access_another_advisors_conversation(
     assert response.status_code == 404
 
 
+def test_send_message_returns_503_when_no_api_key_configured(
+    api_client: TestClient, advisor: Advisor, monkeypatch
+) -> None:
+    client = _create_client(api_client, advisor.id, "assist5@example.com")
+    conversation = api_client.post(
+        f"/clients/{client['id']}/assistant/conversations",
+        headers=_headers(advisor.id),
+    ).json()
+
+    monkeypatch.setattr(ai_agent_module.settings, "anthropic_api_key", None)
+
+    response = api_client.post(
+        f"/clients/{client['id']}/assistant/conversations/{conversation['id']}/messages",
+        json={"message": "Hi there"},
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 503
+
+
 def test_send_message_returns_reply_and_updates_transcript(
     api_client: TestClient, advisor: Advisor, monkeypatch
 ) -> None:

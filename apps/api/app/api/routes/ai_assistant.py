@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -70,7 +70,12 @@ def send_message(
     client: Client = Depends(get_owned_client),
     conversation: AiConversation = Depends(get_owned_ai_conversation),
 ) -> SendMessageResponse:
-    result = run_agent_turn(db, conversation, client, payload.message)
+    try:
+        result = run_agent_turn(db, conversation, client, payload.message)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
 
     return SendMessageResponse(
         reply=result.reply,
