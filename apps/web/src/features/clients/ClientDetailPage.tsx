@@ -12,7 +12,7 @@ import { AdviceTab } from '@/features/advice/AdviceTab'
 import { RiskQuestionnaireTab } from '@/features/riskQuestionnaire/RiskQuestionnaireTab'
 import { FinancialPlanTab } from '@/features/financialPlan/FinancialPlanTab'
 import { FundsTab } from '@/features/funds/FundsTab'
-import { ComingSoonTab } from '@/features/clients/ComingSoonTab'
+import { AssistantTab } from '@/features/assistant/AssistantTab'
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -99,7 +99,7 @@ export function ClientDetailPage() {
           <FundsTab clientId={id} />
         </TabsContent>
         <TabsContent value="assistant">
-          <ComingSoonTab label="AI assistant" />
+          <AssistantTab clientId={id} />
         </TabsContent>
       </Tabs>
     </div>
