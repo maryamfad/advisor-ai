@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models.account import Account
+from app.models.ai_conversation import AiConversation
 from app.models.budget import Budget
 from app.models.client import Client
 from app.models.debt import Debt
@@ -390,6 +391,26 @@ def get_owned_client_tracked_fund(
         )
 
     return selection
+
+
+def get_owned_ai_conversation(
+    conversation_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> AiConversation:
+    """Fetch a conversation by id, scoped to the already-verified
+    owned client. Used by routes nested under
+    /clients/{client_id}/assistant/conversations/{conversation_id}.
+    """
+    conversation = db.get(AiConversation, conversation_id)
+
+    if conversation is None or conversation.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found.",
+        )
+
+    return conversation
 
 
 def get_owned_task(

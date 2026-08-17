@@ -1,4 +1,11 @@
 from app.schemas.account import AccountCreate, AccountRead, AccountUpdate
+from app.schemas.ai_conversation import (
+    AiConversationRead,
+    AiMessageRead,
+    SendMessageRequest,
+    SendMessageResponse,
+    ToolCallOut,
+)
 from app.schemas.budget import BudgetCreate, BudgetRead, BudgetUpdate
 from app.schemas.client import ClientCreate, ClientRead, ClientUpdate
 from app.schemas.debt import DebtCreate, DebtRead, DebtUpdate
@@ -50,6 +57,11 @@ __all__ = [
     "AccountCreate",
     "AccountRead",
     "AccountUpdate",
+    "AiConversationRead",
+    "AiMessageRead",
+    "SendMessageRequest",
+    "SendMessageResponse",
+    "ToolCallOut",
     "BudgetCreate",
     "BudgetRead",
     "BudgetUpdate",
