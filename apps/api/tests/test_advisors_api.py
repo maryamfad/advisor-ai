@@ -1,23 +1,34 @@
 from fastapi.testclient import TestClient
 
+from app.db import SessionLocal
 from app.models.advisor import Advisor
 
 
 def test_create_advisor(api_client: TestClient) -> None:
+    email = f"pat.nguyen.advisor-api-test-{id(object())}@example.com"
+
     response = api_client.post(
         "/advisors",
-        json={
-            "first_name": "Pat",
-            "last_name": "Nguyen",
-            "email": "pat.nguyen.advisor-api-test@example.com",
-        },
+        json={"first_name": "Pat", "last_name": "Nguyen", "email": email},
     )
 
-    assert response.status_code == 201
-    body = response.json()
-    assert body["first_name"] == "Pat"
-    assert body["email"] == "pat.nguyen.advisor-api-test@example.com"
-    assert "id" in body
+    try:
+        assert response.status_code == 201
+        body = response.json()
+        assert body["first_name"] == "Pat"
+        assert body["email"] == email
+        assert "id" in body
+    finally:
+        # No DELETE /advisors endpoint exists (not part of the picker's
+        # minimal API) -- clean up directly so re-running the suite
+        # against the same dev database doesn't hit the unique email
+        # constraint from a leftover row.
+        db = SessionLocal()
+        db.query(Advisor).filter(Advisor.email == email).delete(
+            synchronize_session=False
+        )
+        db.commit()
+        db.close()
 
 
 def test_list_advisors_includes_created_advisor(
