@@ -25,7 +25,7 @@ from app.models.account import Account, AccountType
 from app.models.client import Client
 from app.models.debt import Debt, DebtType
 from app.models.dependent import Dependent
-from app.models.financial_goal import FinancialGoal, GoalStatus
+from app.models.financial_goal import FinancialGoal, GoalStatus, GoalType
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.income_source import IncomeSource
 from app.models.insurance_policy import InsurancePolicy, PolicyStatus, PolicyType
@@ -52,6 +52,9 @@ from app.services.financial_calculations import (
 LIFE_INSURANCE_POLICY_TYPES = {PolicyType.TERM_LIFE, PolicyType.WHOLE_LIFE}
 MORTGAGE_DEBT_TYPES = {DebtType.MORTGAGE_PRIMARY, DebtType.MORTGAGE_SECONDARY_HELOC}
 LIABILITY_ACCOUNT_TYPES = {AccountType.CREDIT, AccountType.LOAN}
+# Accounts an advisor can actually draw on without penalty/delay if an
+# emergency hits -- the classic "liquid" account types.
+LIQUID_ACCOUNT_TYPES = {AccountType.CHECKING, AccountType.SAVINGS}
 
 
 @dataclass(frozen=True)
@@ -352,3 +355,84 @@ def gather_client_financial_data(
         client_account_recommendations=client_account_recommendations,
         spouse_account_recommendations=spouse_account_recommendations,
     )
+
+
+def _priority_ratings(fna: FinancialNeedsAnalysis | None) -> dict[str, int] | None:
+    if fna is None:
+        return None
+
+    candidate = {
+        "emergency_fund": fna.priority_emergency_fund,
+        "debt": fna.priority_debt,
+        "protection": fna.priority_protection,
+        "retirement": fna.priority_retirement,
+    }
+    return {key: value for key, value in candidate.items() if value is not None}
+
+
+def _goal_payload(goal: FinancialGoal) -> dict:
+    return {
+        "name": goal.name,
+        "target_amount": goal.target_amount,
+        "current_amount": goal.current_amount,
+        "monthly_contribution": goal.monthly_contribution,
+    }
+
+
+def build_financial_plan_generator_inputs(snapshot: ClientFinancialSnapshot) -> dict:
+    """Converts a snapshot's raw ORM data into the plain dicts/Decimals
+    that financial_plan_generator.generate_action_items() takes.
+
+    Kept here (ORM-aware) rather than in financial_plan_generator.py
+    (which must stay pure) or duplicated in each of its callers --
+    the financial-plans route and the AI assistant's
+    generate_financial_plan_preview tool both use this.
+    """
+    liquid_savings = sum(
+        (
+            a.balance
+            for a in snapshot.accounts
+            if a.account_type in LIQUID_ACCOUNT_TYPES
+        ),
+        start=Decimal("0.00"),
+    )
+
+    debts = [
+        {
+            "description": d.description,
+            "balance": d.balance,
+            "interest_rate": d.interest_rate,
+        }
+        for d in snapshot.debts
+    ]
+
+    active_goals = [g for g in snapshot.goals if g.status == GoalStatus.ACTIVE]
+    non_retirement_goals = [
+        _goal_payload(g) for g in active_goals if g.goal_type != GoalType.RETIREMENT
+    ]
+    retirement_goal_row = next(
+        (g for g in active_goals if g.goal_type == GoalType.RETIREMENT), None
+    )
+    retirement_goal = (
+        _goal_payload(retirement_goal_row) if retirement_goal_row is not None else None
+    )
+
+    return {
+        "monthly_expenses": snapshot.monthly_expenses,
+        "liquid_savings": liquid_savings,
+        "emergency_fund_months": (
+            snapshot.latest_fna.emergency_fund_months if snapshot.latest_fna else None
+        ),
+        "debts": debts,
+        "insurance_recommended_type": (
+            snapshot.insurance_type_recommendation.recommendation
+        ),
+        "insurance_coverage_gap": snapshot.coverage_gap,
+        "registered_account_recommendations": (
+            snapshot.client_account_recommendations
+            + snapshot.spouse_account_recommendations
+        ),
+        "goals": non_retirement_goals,
+        "retirement_goal": retirement_goal,
+        "priority_ratings": _priority_ratings(snapshot.latest_fna),
+    }

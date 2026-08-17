@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
-import app.api.routes.tracked_funds as tracked_funds_module
+import app.services.fund_price_cache as fund_price_cache_module
 from app.models.advisor import Advisor
 from app.services.market_data_client import MarketDataUnavailableError, PricePoint
 
@@ -167,7 +167,7 @@ def test_performance_cache_miss_fetches_and_caches(
         call_count["n"] += 1
         return _fake_fetch(symbol, start_date, end_date)
 
-    monkeypatch.setattr(tracked_funds_module, "fetch_daily_prices", counting_fetch)
+    monkeypatch.setattr(fund_price_cache_module, "fetch_daily_prices", counting_fetch)
 
     response = api_client.get(
         f"/clients/{client['id']}/tracked-funds/performance"
@@ -199,7 +199,7 @@ def test_performance_cache_hit_skips_second_fetch(
         call_count["n"] += 1
         return _fake_fetch(symbol, start_date, end_date)
 
-    monkeypatch.setattr(tracked_funds_module, "fetch_daily_prices", counting_fetch)
+    monkeypatch.setattr(fund_price_cache_module, "fetch_daily_prices", counting_fetch)
 
     url = (
         f"/clients/{client['id']}/tracked-funds/performance"
@@ -225,7 +225,7 @@ def test_performance_failing_fund_appears_in_warnings(
             headers=_headers(advisor.id),
         )
 
-    monkeypatch.setattr(tracked_funds_module, "fetch_daily_prices", _fake_fetch)
+    monkeypatch.setattr(fund_price_cache_module, "fetch_daily_prices", _fake_fetch)
 
     response = api_client.get(
         f"/clients/{client['id']}/tracked-funds/performance"

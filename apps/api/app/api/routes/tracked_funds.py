@@ -22,11 +22,8 @@ from app.schemas.tracked_fund import (
     TrackedFundRead,
 )
 from app.services.fund_comparison import align_series
-from app.services.market_data_client import (
-    MarketDataUnavailableError,
-    PricePoint,
-    fetch_daily_prices,
-)
+from app.services.fund_price_cache import get_cached_or_fetch_prices
+from app.services.market_data_client import MarketDataUnavailableError, PricePoint
 
 # Advisor's shared, reusable catalog -- not nested under a client.
 router = APIRouter(prefix="/tracked-funds", tags=["tracked-funds"])
@@ -144,58 +141,6 @@ def unselect_tracked_fund_for_client(
 # -- Performance comparison --------------------------------------------------
 
 
-def _trading_weekdays(start_date: date, end_date: date) -> set[date]:
-    """A simple Mon-Fri proxy for "trading days," without a holiday
-    calendar -- used only to decide whether the cache already covers
-    the requested range, not to validate provider data."""
-    days = (end_date - start_date).days + 1
-    return {
-        start_date + timedelta(days=offset)
-        for offset in range(days)
-        if (start_date + timedelta(days=offset)).weekday() < 5
-    }
-
-
-def _get_cached_or_fetch(
-    db: Session, fund: TrackedFund, start_date: date, end_date: date
-) -> list[PricePoint]:
-    cached = list(
-        db.scalars(
-            select(FundPriceHistory).where(
-                FundPriceHistory.tracked_fund_id == fund.id,
-                FundPriceHistory.price_date >= start_date,
-                FundPriceHistory.price_date <= end_date,
-            )
-        ).all()
-    )
-    cached_dates = {row.price_date for row in cached}
-
-    if _trading_weekdays(start_date, end_date) <= cached_dates:
-        # Every expected trading day in range is already cached --
-        # skip the provider call entirely.
-        rows = sorted(cached, key=lambda row: row.price_date)
-        return [
-            PricePoint(price_date=row.price_date, close=row.close_price)
-            for row in rows
-        ]
-
-    fetched = fetch_daily_prices(fund.symbol, start_date, end_date)
-    for point in fetched:
-        if point.price_date in cached_dates:
-            continue
-        db.add(
-            FundPriceHistory(
-                tracked_fund_id=fund.id,
-                price_date=point.price_date,
-                close_price=point.close,
-            )
-        )
-        cached_dates.add(point.price_date)
-    db.commit()
-
-    return sorted(fetched, key=lambda point: point.price_date)
-
-
 @client_router.get("/performance", response_model=FundPerformanceResponse)
 def get_client_fund_performance(
     start_date: date | None = None,
@@ -220,7 +165,7 @@ def get_client_fund_performance(
     for selection in selections:
         fund = selection.tracked_fund
         try:
-            prices = _get_cached_or_fetch(db, fund, resolved_start, resolved_end)
+            prices = get_cached_or_fetch_prices(db, fund, resolved_start, resolved_end)
         except MarketDataUnavailableError as exc:
             warnings.append(f"{fund.symbol}: {exc}")
             continue
