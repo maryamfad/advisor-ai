@@ -1,4 +1,5 @@
 from app.schemas.account import AccountCreate, AccountRead, AccountUpdate
+from app.schemas.advisor import AdvisorCreate, AdvisorRead
 from app.schemas.ai_conversation import (
     AiConversationRead,
     AiMessageRead,
@@ -57,6 +58,8 @@ __all__ = [
     "AccountCreate",
     "AccountRead",
     "AccountUpdate",
+    "AdvisorCreate",
+    "AdvisorRead",
     "AiConversationRead",
     "AiMessageRead",
     "SendMessageRequest",
