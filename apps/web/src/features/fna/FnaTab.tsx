@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/data-table/DataTable'
 import { formatDate, formatEnumLabel } from '@/lib/format'
 import { FnaDialog } from '@/features/fna/FnaDialog'
+import { AdviceSection } from '@/features/advice/AdviceSection'
 
 export function FnaTab({ clientId }: { clientId: number }) {
   const { data: analyses, isLoading } = useFinancialNeedsAnalyses(clientId)
@@ -64,22 +65,26 @@ export function FnaTab({ clientId }: { clientId: number }) {
   ]
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Financial needs assessments</CardTitle>
-        <FnaDialog clientId={clientId} trigger={<Button size="sm">New assessment</Button>} />
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={sorted}
-            emptyMessage="No assessments on file yet."
-          />
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Financial Needs Analysis</CardTitle>
+          <FnaDialog clientId={clientId} trigger={<Button size="sm">New assessment</Button>} />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={sorted}
+              emptyMessage="No assessments on file yet."
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <AdviceSection clientId={clientId} />
+    </div>
   )
 }

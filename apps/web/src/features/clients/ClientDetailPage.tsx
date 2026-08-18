@@ -8,7 +8,6 @@ import { HouseholdTab } from '@/features/household/HouseholdTab'
 import { FinancesTab } from '@/features/finances/FinancesTab'
 import { InsuranceTab } from '@/features/insurance/InsuranceTab'
 import { FnaTab } from '@/features/fna/FnaTab'
-import { AdviceTab } from '@/features/advice/AdviceTab'
 import { RiskQuestionnaireTab } from '@/features/riskQuestionnaire/RiskQuestionnaireTab'
 import { FinancialPlanTab } from '@/features/financialPlan/FinancialPlanTab'
 import { FundsTab } from '@/features/funds/FundsTab'
@@ -19,8 +18,7 @@ const TABS = [
   { value: 'household', label: 'Household' },
   { value: 'finances', label: 'Finances' },
   { value: 'insurance', label: 'Insurance' },
-  { value: 'fna', label: 'FNA' },
-  { value: 'advice', label: 'Advice' },
+  { value: 'fna', label: 'Financial Needs Analysis' },
   { value: 'risk', label: 'Risk Questionnaire' },
   { value: 'plan', label: 'Financial Plan' },
   { value: 'funds', label: 'Funds' },
@@ -85,9 +83,6 @@ export function ClientDetailPage() {
         </TabsContent>
         <TabsContent value="fna">
           <FnaTab clientId={id} />
-        </TabsContent>
-        <TabsContent value="advice">
-          <AdviceTab clientId={id} />
         </TabsContent>
         <TabsContent value="risk">
           <RiskQuestionnaireTab clientId={id} />

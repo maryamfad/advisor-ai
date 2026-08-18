@@ -13,11 +13,16 @@ function StatTile({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function AdviceTab({ clientId }: { clientId: number }) {
+/** Renders the advice engine's output (financial summary, life
+ * insurance recommendation, registered-account priorities) as a
+ * section within the FNA tab -- advice always follows directly from a
+ * client's financial needs analysis, so the two live together rather
+ * than as separate tabs. */
+export function AdviceSection({ clientId }: { clientId: number }) {
   const { data: advice, isLoading, isError } = useClientAdvice(clientId)
 
   if (isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">Loading advice…</p>
   }
 
   if (isError || !advice) {
@@ -28,6 +33,8 @@ export function AdviceTab({ clientId }: { clientId: number }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <h2 className="text-lg font-semibold">Advice</h2>
+
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <StatTile label="Monthly income" value={formatCurrency(financial_summary.monthly_income)} />
         <StatTile
