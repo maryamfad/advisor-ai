@@ -278,7 +278,9 @@ def generate_narrative_summary(
 
     top_item = action_items[0]
     remaining = len(action_items) - 1
-    other_categories = sorted({item.category for item in action_items[1:]})
+    other_categories = sorted(
+        {item.category.replace("_", " ") for item in action_items[1:]}
+    )
     categories_text = (
         ", ".join(other_categories) if other_categories else "no other categories"
     )
