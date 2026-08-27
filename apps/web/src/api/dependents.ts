@@ -32,6 +32,7 @@ export function useCreateDependent(clientId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'dependents'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useUpdateDependent(clientId: number, dependentId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'dependents'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useDeleteDependent(clientId: number) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'dependents'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

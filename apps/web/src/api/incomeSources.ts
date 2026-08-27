@@ -32,6 +32,7 @@ export function useCreateIncomeSource(clientId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'income-sources'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useUpdateIncomeSource(clientId: number, incomeSourceId: number) 
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'income-sources'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useDeleteIncomeSource(clientId: number) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'income-sources'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

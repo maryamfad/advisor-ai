@@ -36,6 +36,7 @@ export function useCreateFinancialNeedsAnalysis(clientId: number) {
       void queryClient.invalidateQueries({
         queryKey: ['clients', clientId, 'financial-needs-analyses'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -58,6 +59,7 @@ export function useUpdateFinancialNeedsAnalysis(clientId: number, fnaId: number)
       void queryClient.invalidateQueries({
         queryKey: ['clients', clientId, 'financial-needs-analyses'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -77,6 +79,7 @@ export function useDeleteFinancialNeedsAnalysis(clientId: number) {
       void queryClient.invalidateQueries({
         queryKey: ['clients', clientId, 'financial-needs-analyses'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

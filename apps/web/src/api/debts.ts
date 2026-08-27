@@ -32,6 +32,7 @@ export function useCreateDebt(clientId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'debts'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useUpdateDebt(clientId: number, debtId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'debts'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -65,6 +67,7 @@ export function useDeleteDebt(clientId: number) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'debts'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

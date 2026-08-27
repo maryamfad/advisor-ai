@@ -32,6 +32,7 @@ export function useCreateInsurancePolicy(clientId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'insurance-policies'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useUpdateInsurancePolicy(clientId: number, policyId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'insurance-policies'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -66,6 +68,7 @@ export function useDeleteInsurancePolicy(clientId: number) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'insurance-policies'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

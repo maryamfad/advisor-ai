@@ -32,6 +32,7 @@ export function useCreateGoal(clientId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'goals'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -49,6 +50,7 @@ export function useUpdateGoal(clientId: number, goalId: number) {
       ),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'goals'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -65,6 +67,7 @@ export function useDeleteGoal(clientId: number) {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'goals'] })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }

@@ -34,6 +34,7 @@ export function useCreateTransaction(clientId: number, accountId: number) {
       void queryClient.invalidateQueries({
         queryKey: ['clients', clientId, 'accounts', accountId, 'transactions'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
@@ -57,6 +58,7 @@ export function useDeleteTransaction(clientId: number, accountId: number) {
       void queryClient.invalidateQueries({
         queryKey: ['clients', clientId, 'accounts', accountId, 'transactions'],
       })
+      void queryClient.invalidateQueries({ queryKey: ['clients', clientId, 'recommendations'] })
     },
   })
 }
