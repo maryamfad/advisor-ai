@@ -4,8 +4,8 @@ These are deliberately rounded, rule-of-thumb figures, NOT a precise
 per-individual CRA contribution-room calculation (which would need
 prior years' unused room, notices of assessment, and other data this
 app does not track). Review and update this file at the start of each
-tax year; nothing in app/services/financial_advice.py should need to
-change when these numbers change -- that separation is the point of
+tax year; nothing in app/services/financial_recommendations.py should
+need to change when these numbers change -- that separation is the point of
 keeping them in their own module.
 """
 

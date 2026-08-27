@@ -1,10 +1,10 @@
 from decimal import Decimal
 
-from app.services.financial_advice import AccountRecommendation
 from app.services.financial_plan_generator import (
     generate_action_items,
     generate_narrative_summary,
 )
+from app.services.financial_recommendations import AccountRecommendation
 
 
 def _kwargs(**overrides):

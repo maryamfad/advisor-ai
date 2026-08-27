@@ -30,7 +30,7 @@ class OwnerRegisteredAccountRecommendations(BaseModel):
     recommendations: list[RegisteredAccountRecommendation]
 
 
-class ClientAdvice(BaseModel):
+class ClientRecommendation(BaseModel):
     financial_summary: FinancialSummary
     insurance: InsuranceRecommendation
     registered_accounts: list[OwnerRegisteredAccountRecommendations]

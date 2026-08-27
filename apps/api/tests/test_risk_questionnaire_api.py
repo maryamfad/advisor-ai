@@ -221,7 +221,7 @@ def test_public_submit_after_completion_returns_410(
     assert response.status_code == 410
 
 
-def test_advice_prefers_completed_questionnaire_over_fna(
+def test_recommendations_prefer_completed_questionnaire_over_fna(
     api_client: TestClient, advisor: Advisor
 ) -> None:
     client = _create_client(api_client, advisor.id, "rq11@example.com")
@@ -240,10 +240,12 @@ def test_advice_prefers_completed_questionnaire_over_fna(
         json={"answers": _maximum_answers()},
     )
 
-    advice = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+    recommendations = api_client.get(
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     ).json()
 
     # FNA says "low"; the completed questionnaire (max answers -> high)
     # should win.
-    assert "risk tolerance is high" in " ".join(advice["insurance"]["reasons"])
+    assert "risk tolerance is high" in " ".join(
+        recommendations["insurance"]["reasons"]
+    )

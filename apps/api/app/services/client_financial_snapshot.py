@@ -1,17 +1,18 @@
-"""Gathers a client's financial data plus every advice-engine output
-computed from it, in one place.
+"""Gathers a client's financial data plus every recommendation-engine
+output computed from it, in one place.
 
-Both the advice endpoint (app/api/routes/advice.py) and the financial
-plan generator need the same inputs, so this factors out the query
-assembly and calculation calls that advice.py used to do inline --
-callers just map the resulting snapshot into whatever response shape
-they need, instead of duplicating the same select() statements.
+Both the recommendations endpoint (app/api/routes/recommendations.py)
+and the financial plan generator need the same inputs, so this factors
+out the query assembly and calculation calls that recommendations.py
+used to do inline -- callers just map the resulting snapshot into
+whatever response shape they need, instead of duplicating the same
+select() statements.
 
 Deliberately NOT pure -- it takes a DB session -- unlike everything in
-financial_calculations.py/financial_advice.py. Kept in app/services/
-anyway, as the clearly-labeled DB-touching exception (the same
-category market_data_client.py will be later), rather than living in
-the route layer where it would inevitably get copy-pasted.
+financial_calculations.py/financial_recommendations.py. Kept in
+app/services/ anyway, as the clearly-labeled DB-touching exception (the
+same category market_data_client.py will be later), rather than living
+in the route layer where it would inevitably get copy-pasted.
 """
 
 from dataclasses import dataclass
@@ -32,14 +33,6 @@ from app.models.insurance_policy import InsurancePolicy, PolicyStatus, PolicyTyp
 from app.models.risk_questionnaire import RiskQuestionnaire
 from app.models.spouse import HouseholdMemberRole, Spouse
 from app.models.transaction import Transaction
-from app.services.financial_advice import (
-    AccountRecommendation,
-    InsuranceTypeRecommendation,
-    calculate_insurance_gap,
-    calculate_life_insurance_need,
-    prioritize_registered_accounts,
-    recommend_life_insurance_type,
-)
 from app.services.financial_calculations import (
     calculate_cash_flow,
     calculate_monthly_expenses,
@@ -47,6 +40,14 @@ from app.services.financial_calculations import (
     calculate_net_worth,
     calculate_savings_rate,
     normalize_income_to_monthly,
+)
+from app.services.financial_recommendations import (
+    AccountRecommendation,
+    InsuranceTypeRecommendation,
+    calculate_insurance_gap,
+    calculate_life_insurance_need,
+    prioritize_registered_accounts,
+    recommend_life_insurance_type,
 )
 
 LIFE_INSURANCE_POLICY_TYPES = {PolicyType.TERM_LIFE, PolicyType.WHOLE_LIFE}

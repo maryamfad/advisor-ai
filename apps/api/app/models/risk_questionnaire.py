@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class RiskQuestionnaire(Base):
     """One instance of the scored risk-tolerance questionnaire sent to
     a client. A client may retake it over time (many per Client); the
-    advice engine always uses the latest completed one. The token is
+    recommendation engine always uses the latest completed one. The token is
     the client's only credential for the public, unauthenticated
     submit endpoint -- see app/api/routes/risk_questionnaire.py."""
 

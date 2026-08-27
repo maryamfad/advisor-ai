@@ -30,8 +30,8 @@ class RiskTolerance(enum.StrEnum):
 
 class FinancialNeedsAnalysis(Base):
     """One row per FNA intake/review session (the source form is
-    explicitly meant to be redone periodically). The advice engine
-    always uses the most recent row for a client. Groups the three
+    explicitly meant to be redone periodically). The recommendation
+    engine always uses the most recent row for a client. Groups the three
     things the form groups together: household planning habits, the
     investor profile, goal priority ratings, and the client's own
     declared life-insurance needs (the DIME checklist)."""

@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_owned_client
 from app.models.client import Client
-from app.schemas.advice import (
-    ClientAdvice,
+from app.schemas.recommendations import (
+    ClientRecommendation,
     FinancialSummary,
     InsuranceRecommendation,
     OwnerRegisteredAccountRecommendations,
@@ -14,9 +14,11 @@ from app.services.client_financial_snapshot import (
     ClientFinancialSnapshot,
     gather_client_financial_data,
 )
-from app.services.financial_advice import AccountRecommendation
+from app.services.financial_recommendations import AccountRecommendation
 
-router = APIRouter(prefix="/clients/{client_id}/advice", tags=["advice"])
+router = APIRouter(
+    prefix="/clients/{client_id}/recommendations", tags=["recommendations"]
+)
 
 
 def _to_recommendation_schemas(
@@ -30,11 +32,11 @@ def _to_recommendation_schemas(
     ]
 
 
-@router.get("", response_model=ClientAdvice)
-def get_client_advice(
+@router.get("", response_model=ClientRecommendation)
+def get_client_recommendations(
     db: Session = Depends(get_db),
     client: Client = Depends(get_owned_client),
-) -> ClientAdvice:
+) -> ClientRecommendation:
     snapshot: ClientFinancialSnapshot = gather_client_financial_data(db, client)
 
     financial_summary = FinancialSummary(
@@ -78,7 +80,7 @@ def get_client_advice(
             )
         )
 
-    return ClientAdvice(
+    return ClientRecommendation(
         financial_summary=financial_summary,
         insurance=insurance,
         registered_accounts=registered_accounts,

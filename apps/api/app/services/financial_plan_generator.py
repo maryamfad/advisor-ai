@@ -1,22 +1,23 @@
-"""Turns already-computed advice-engine outputs into a prioritized,
-trackable action-item checklist -- the standard financial-planning
-order-of-operations, not just a report.
+"""Turns already-computed recommendation-engine outputs into a
+prioritized, trackable action-item checklist -- the standard
+financial-planning order-of-operations, not just a report.
 
 Pure and DB-free, like the rest of app/services/: takes plain
 Decimals/ints/strings/dicts and the pure dataclasses from
-financial_advice.py, never an ORM model or a DB session. The caller
-(the financial-plans route) is responsible for extracting these plain
-values out of a ClientFinancialSnapshot/FinancialNeedsAnalysis first.
+financial_recommendations.py, never an ORM model or a DB session. The
+caller (the financial-plans route) is responsible for extracting these
+plain values out of a ClientFinancialSnapshot/FinancialNeedsAnalysis
+first.
 """
 
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.services.financial_advice import (
+from app.services.financial_calculations import calculate_goal_projection
+from app.services.financial_recommendations import (
     DEFAULT_EMERGENCY_FUND_MONTHS,
     AccountRecommendation,
 )
-from app.services.financial_calculations import calculate_goal_projection
 
 HIGH_INTEREST_DEBT_THRESHOLD_PERCENT = Decimal("10.00")
 

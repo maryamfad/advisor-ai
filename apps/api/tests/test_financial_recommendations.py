@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from app.services.financial_advice import (
+from app.services.financial_recommendations import (
     calculate_insurance_gap,
     calculate_life_insurance_need,
     prioritize_registered_accounts,

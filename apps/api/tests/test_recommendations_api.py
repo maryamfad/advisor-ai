@@ -18,21 +18,23 @@ def _create_client(
     return response.json()
 
 
-def test_advice_requires_owned_client(api_client: TestClient, advisor: Advisor) -> None:
+def test_recommendations_require_owned_client(
+    api_client: TestClient, advisor: Advisor
+) -> None:
     response = api_client.get(
-        "/clients/999999999/advice", headers=_headers(advisor.id)
+        "/clients/999999999/recommendations", headers=_headers(advisor.id)
     )
 
     assert response.status_code == 404
 
 
-def test_advice_with_no_data_degrades_gracefully(
+def test_recommendations_with_no_data_degrades_gracefully(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice1@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations1@example.com")
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     assert response.status_code == 200
@@ -45,10 +47,10 @@ def test_advice_with_no_data_degrades_gracefully(
     assert body["registered_accounts"][0]["owner"] == "client"
 
 
-def test_advice_computes_financial_summary_from_income_sources_and_transactions(
+def test_recommendations_compute_financial_summary_from_income_sources_and_transactions(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice2@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations2@example.com")
 
     api_client.post(
         f"/clients/{client['id']}/income-sources",
@@ -76,7 +78,7 @@ def test_advice_computes_financial_summary_from_income_sources_and_transactions(
     )
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     body = response.json()
@@ -86,10 +88,10 @@ def test_advice_computes_financial_summary_from_income_sources_and_transactions(
     assert body["financial_summary"]["net_worth"] == "5000.00"
 
 
-def test_advice_insurance_need_uses_fna_dime_checklist(
+def test_recommendations_insurance_need_uses_fna_dime_checklist(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice3@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations3@example.com")
 
     api_client.post(
         f"/clients/{client['id']}/financial-needs-analyses",
@@ -102,7 +104,7 @@ def test_advice_insurance_need_uses_fna_dime_checklist(
     )
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     body = response.json()
@@ -110,10 +112,10 @@ def test_advice_insurance_need_uses_fna_dime_checklist(
     assert body["insurance"]["coverage_gap"] == "15000.00"
 
 
-def test_advice_existing_coverage_reduces_gap(
+def test_recommendations_existing_coverage_reduces_gap(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice4@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations4@example.com")
 
     api_client.post(
         f"/clients/{client['id']}/financial-needs-analyses",
@@ -136,7 +138,7 @@ def test_advice_existing_coverage_reduces_gap(
     )
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     body = response.json()
@@ -144,10 +146,10 @@ def test_advice_existing_coverage_reduces_gap(
     assert body["insurance"]["coverage_gap"] == "5000.00"
 
 
-def test_advice_lapsed_policy_not_counted_as_existing_coverage(
+def test_recommendations_lapsed_policy_not_counted_as_existing_coverage(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice5@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations5@example.com")
 
     api_client.post(
         f"/clients/{client['id']}/insurance-policies",
@@ -161,20 +163,26 @@ def test_advice_lapsed_policy_not_counted_as_existing_coverage(
     )
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     assert response.json()["insurance"]["existing_coverage"] == "0.00"
 
 
-def test_advice_toggling_first_time_home_buyer_changes_fhsa_recommendation(
+def test_recommendations_toggling_first_time_home_buyer_changes_fhsa_recommendation(
     api_client: TestClient, advisor: Advisor
 ) -> None:
     not_buyer = _create_client(
-        api_client, advisor.id, "advice6@example.com", first_time_home_buyer=False
+        api_client,
+        advisor.id,
+        "recommendations6@example.com",
+        first_time_home_buyer=False,
     )
     buyer = _create_client(
-        api_client, advisor.id, "advice7@example.com", first_time_home_buyer=True
+        api_client,
+        advisor.id,
+        "recommendations7@example.com",
+        first_time_home_buyer=True,
     )
 
     for client in (not_buyer, buyer):
@@ -189,10 +197,10 @@ def test_advice_toggling_first_time_home_buyer_changes_fhsa_recommendation(
         )
 
     not_buyer_response = api_client.get(
-        f"/clients/{not_buyer['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{not_buyer['id']}/recommendations", headers=_headers(advisor.id)
     ).json()
     buyer_response = api_client.get(
-        f"/clients/{buyer['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{buyer['id']}/recommendations", headers=_headers(advisor.id)
     ).json()
 
     not_buyer_types = {
@@ -207,10 +215,10 @@ def test_advice_toggling_first_time_home_buyer_changes_fhsa_recommendation(
     assert "fhsa" in buyer_types
 
 
-def test_advice_second_underfunded_dependent_adds_second_resp_recommendation(
+def test_recommendations_second_underfunded_dependent_adds_second_resp_recommendation(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice8@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations8@example.com")
 
     api_client.post(
         f"/clients/{client['id']}/dependents",
@@ -224,7 +232,7 @@ def test_advice_second_underfunded_dependent_adds_second_resp_recommendation(
     )
 
     response = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     )
 
     resp_recommendations = [
@@ -238,13 +246,13 @@ def test_advice_second_underfunded_dependent_adds_second_resp_recommendation(
     assert "Riley" in reasons
 
 
-def test_advice_includes_spouse_recommendations_when_spouse_exists(
+def test_recommendations_include_spouse_recommendations_when_spouse_exists(
     api_client: TestClient, advisor: Advisor
 ) -> None:
-    client = _create_client(api_client, advisor.id, "advice9@example.com")
+    client = _create_client(api_client, advisor.id, "recommendations9@example.com")
 
     response_before = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     ).json()
     assert len(response_before["registered_accounts"]) == 1
 
@@ -255,7 +263,7 @@ def test_advice_includes_spouse_recommendations_when_spouse_exists(
     )
 
     response_after = api_client.get(
-        f"/clients/{client['id']}/advice", headers=_headers(advisor.id)
+        f"/clients/{client['id']}/recommendations", headers=_headers(advisor.id)
     ).json()
     owners = {r["owner"] for r in response_after["registered_accounts"]}
     assert owners == {"client", "spouse"}
