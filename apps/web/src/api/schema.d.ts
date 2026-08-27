@@ -76,15 +76,15 @@ export interface paths {
         patch: operations["update_client_clients__client_id__patch"];
         trace?: never;
     };
-    "/clients/{client_id}/advice": {
+    "/clients/{client_id}/recommendations": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Client Advice */
-        get: operations["get_client_advice_clients__client_id__advice_get"];
+        /** Get Client Recommendations */
+        get: operations["get_client_recommendations_clients__client_id__recommendations_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1026,13 +1026,6 @@ export interface components {
             /** Is Discretionary */
             is_discretionary?: boolean | null;
         };
-        /** ClientAdvice */
-        ClientAdvice: {
-            financial_summary: components["schemas"]["FinancialSummary"];
-            insurance: components["schemas"]["InsuranceRecommendation"];
-            /** Registered Accounts */
-            registered_accounts: components["schemas"]["OwnerRegisteredAccountRecommendations"][];
-        };
         /**
          * ClientCreate
          * @description Payload for POST /clients. advisor_id is taken from the
@@ -1105,6 +1098,13 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** ClientRecommendation */
+        ClientRecommendation: {
+            financial_summary: components["schemas"]["FinancialSummary"];
+            insurance: components["schemas"]["InsuranceRecommendation"];
+            /** Registered Accounts */
+            registered_accounts: components["schemas"]["OwnerRegisteredAccountRecommendations"][];
         };
         /**
          * ClientTrackedFundCreate
@@ -2577,7 +2577,7 @@ export interface operations {
             };
         };
     };
-    get_client_advice_clients__client_id__advice_get: {
+    get_client_recommendations_clients__client_id__recommendations_get: {
         parameters: {
             query?: never;
             header?: {
@@ -2596,7 +2596,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClientAdvice"];
+                    "application/json": components["schemas"]["ClientRecommendation"];
                 };
             };
             /** @description Validation Error */

@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DataTable } from '@/components/data-table/DataTable'
 import { formatDate, formatEnumLabel } from '@/lib/format'
 import { FnaDialog } from '@/features/fna/FnaDialog'
-import { AdviceSection } from '@/features/advice/AdviceSection'
+import { RecommendationSection } from '@/features/recommendations/RecommendationSection'
 
 export function FnaTab({ clientId }: { clientId: number }) {
   const { data: analyses, isLoading } = useFinancialNeedsAnalyses(clientId)
@@ -84,7 +84,7 @@ export function FnaTab({ clientId }: { clientId: number }) {
         </CardContent>
       </Card>
 
-      <AdviceSection clientId={clientId} />
+      <RecommendationSection clientId={clientId} />
     </div>
   )
 }

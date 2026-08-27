@@ -3,14 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 
-export type ClientAdvice = components['schemas']['ClientAdvice']
+export type ClientRecommendation = components['schemas']['ClientRecommendation']
 
-export function useClientAdvice(clientId: number) {
+export function useClientRecommendations(clientId: number) {
   return useQuery({
-    queryKey: ['clients', clientId, 'advice'],
+    queryKey: ['clients', clientId, 'recommendations'],
     queryFn: async () =>
       unwrap(
-        await apiClient.GET('/clients/{client_id}/advice', {
+        await apiClient.GET('/clients/{client_id}/recommendations', {
           params: { path: { client_id: clientId } },
         })
       ),
