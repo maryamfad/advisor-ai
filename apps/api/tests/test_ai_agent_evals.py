@@ -159,6 +159,47 @@ class TestScriptedToolCallSequences:
 
         assert [c.tool_name for c in result.tool_calls] == ["get_risk_tolerance"]
 
+    def test_policy_document_question_calls_search_policy_documents_tool(
+        self, api_client: TestClient, advisor: Advisor, db_session: Session, monkeypatch
+    ) -> None:
+        client = _create_client(api_client, advisor.id, "eval6@example.com")
+        conversation = _make_conversation(db_session, client["id"], advisor.id)
+        client_orm = db_session.get(ClientModel, client["id"])
+
+        patch_chat_model(
+            monkeypatch,
+            ai_agent_module,
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "search_policy_documents",
+                            "args": {"query": "surrender value"},
+                            "id": "t1",
+                        }
+                    ],
+                ),
+                AIMessage(content="Here's what the policy says about that..."),
+            ],
+        )
+
+        result = run_agent_turn(
+            db_session,
+            conversation,
+            client_orm,
+            "What does this client's policy say about surrender value?",
+        )
+
+        # Proves search_policy_documents is correctly wired into
+        # build_langchain_tools()/AI_TOOLS and dispatches through the
+        # same path as every other tool -- not that the real model
+        # would choose it for this question (out of scope, same as
+        # every other case in this class).
+        assert [c.tool_name for c in result.tool_calls] == [
+            "search_policy_documents"
+        ]
+
 
 class TestGuardrails:
     def test_max_iteration_cap_halts_pathological_loop(
