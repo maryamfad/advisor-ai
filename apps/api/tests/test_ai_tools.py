@@ -4,14 +4,17 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_postgres import PGVector
 from sqlalchemy.orm import Session
 
 import app.services.fund_price_cache as fund_price_cache_module
 from app.db import SessionLocal
 from app.models.advisor import Advisor
 from app.models.client import Client as ClientModel
+from app.models.document import Document, DocumentCategory
 from app.services import ai_tools
 from app.services.market_data_client import MarketDataUnavailableError, PricePoint
+from app.services.policy_document_ingestion import ingest_policy_document
 
 
 def _headers(advisor_id: int) -> dict[str, str]:
@@ -55,6 +58,10 @@ class TestToolsRegistry:
             assert tool.input_schema["type"] == "object"
             assert "properties" in tool.input_schema
             assert "required" in tool.input_schema
+
+    def test_search_policy_documents_is_registered_and_requires_query(self) -> None:
+        schema = ai_tools.TOOLS_BY_NAME["search_policy_documents"].input_schema
+        assert schema["required"] == ["query"]
 
     def test_compare_funds_schema_requires_symbols_and_dates(self) -> None:
         schema = ai_tools.TOOLS_BY_NAME["compare_funds"].input_schema
@@ -241,3 +248,55 @@ class TestCompareFunds:
         assert result["symbols"] == ["SPY"]
         assert len(result["dates"]) == 5
         assert result["warnings"] == []
+
+
+class TestSearchPolicyDocuments:
+    def test_returns_cited_passage_for_seeded_chunk(
+        self,
+        api_client: TestClient,
+        advisor: Advisor,
+        db_session,
+        fake_policy_vectorstore: PGVector,
+    ) -> None:
+        client = _create_client(api_client, advisor.id, "tool9@example.com")
+        client_orm = _fetch_client(db_session, client["id"])
+
+        document = Document(
+            client_id=client_orm.id,
+            filename="policy.txt",
+            content_type="text/plain",
+            storage_path="/tmp/policy.txt",
+            category=DocumentCategory.INSURANCE_POLICY,
+        )
+        db_session.add(document)
+        db_session.commit()
+        db_session.refresh(document)
+
+        ingest_policy_document(
+            document, "This policy includes a disability waiver rider."
+        )
+
+        result = ai_tools.search_policy_documents(
+            db_session, client_orm, query="disability waiver", k=4
+        )
+
+        assert any(
+            r["source_document"] == "policy.txt" for r in result["results"]
+        )
+
+    def test_missing_openai_key_returns_warning_not_crash(
+        self, api_client: TestClient, advisor: Advisor, db_session, monkeypatch
+    ) -> None:
+        import app.services.policy_document_ingestion as ingestion_module
+
+        monkeypatch.setattr(ingestion_module.settings, "openai_api_key", None)
+
+        client = _create_client(api_client, advisor.id, "tool10@example.com")
+        client_orm = _fetch_client(db_session, client["id"])
+
+        result = ai_tools.search_policy_documents(
+            db_session, client_orm, query="anything", k=4
+        )
+
+        assert result["results"] == []
+        assert "warning" in result

@@ -1,8 +1,11 @@
+import uuid
 from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_postgres import PGVector
 
+from app.core.config import settings
 from app.db import SessionLocal
 from app.main import app
 from app.models.account import Account
@@ -12,6 +15,7 @@ from app.models.budget import Budget
 from app.models.client import Client as ClientModel
 from app.models.debt import Debt
 from app.models.dependent import Dependent
+from app.models.document import Document
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.financial_plan import FinancialPlan, FinancialPlanActionItem
@@ -28,6 +32,33 @@ from app.models.transaction import Transaction
 @pytest.fixture
 def api_client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def fake_policy_vectorstore(monkeypatch) -> Generator[PGVector, None, None]:
+    """Swaps app.services.policy_document_ingestion over to a
+    FakeEmbeddings-backed PGVector pointed at a throwaway collection
+    in the real local Postgres, so ingestion/search tests exercise
+    real pgvector storage and metadata filtering without a real
+    OPENAI_API_KEY or network call. The collection is dropped
+    afterwards."""
+    import app.services.policy_document_ingestion as ingestion_module
+    from tests._fake_embeddings import FakeEmbeddings
+
+    vectorstore = PGVector(
+        embeddings=FakeEmbeddings(),
+        connection=settings.database_url,
+        collection_name=f"test_policy_chunks_{uuid.uuid4().hex}",
+        create_extension=False,
+        use_jsonb=True,
+    )
+    monkeypatch.setattr(ingestion_module.settings, "openai_api_key", "fake-test-key")
+    monkeypatch.setattr(ingestion_module, "get_vectorstore", lambda: vectorstore)
+
+    try:
+        yield vectorstore
+    finally:
+        vectorstore.delete_collection()
 
 
 @pytest.fixture
@@ -94,6 +125,9 @@ def advisor() -> Generator[Advisor, None, None]:
             )
             db.query(Dependent).filter(
                 Dependent.client_id.in_(client_ids)
+            ).delete(synchronize_session=False)
+            db.query(Document).filter(
+                Document.client_id.in_(client_ids)
             ).delete(synchronize_session=False)
             db.query(IncomeSource).filter(
                 IncomeSource.client_id.in_(client_ids)

@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     ai_agent_model: str = "claude-sonnet-5"
     ai_agent_max_tool_iterations: int = 6
 
+    # Optional -- used for policy-document embeddings (RAG). Routes
+    # that ingest a document raise a clear error if this isn't set,
+    # same pattern as anthropic_api_key above.
+    openai_api_key: str | None = None
+    embedding_model_name: str = "text-embedding-3-small"
+    pgvector_collection_name: str = "insurance_policy_chunks"
+
+    # Where uploaded client documents are saved on disk. Not meant to
+    # be a production file-storage design -- just enough so ingestion
+    # has real bytes to read.
+    document_storage_dir: str = "./data/documents"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

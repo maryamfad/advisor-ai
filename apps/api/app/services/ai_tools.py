@@ -11,9 +11,9 @@ All tools take the already-ownership-verified `client` object, not a
 raw client_id -- a conversation is always scoped to one client (see
 AiConversation), so the agent has no way to ask for a different
 client's data than the one its conversation belongs to. compare_funds
-is the only tool with genuinely model-choosable parameters (which
-funds, what date range); everything else is fixed to "this
-conversation's client."
+and search_policy_documents are the only tools with genuinely
+model-choosable parameters (which funds/date range, or what to search
+for); everything else is fixed to "this conversation's client."
 
 All tools are read-only. None of them create, update, or delete a
 persisted record -- generate_financial_plan_preview runs the generator
@@ -23,6 +23,7 @@ action through the normal REST endpoints.
 """
 
 import functools
+import inspect
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -46,6 +47,12 @@ from app.services.financial_plan_generator import (
 from app.services.fund_comparison import align_series
 from app.services.fund_price_cache import get_cached_or_fetch_prices
 from app.services.market_data_client import MarketDataUnavailableError, PricePoint
+from app.services.policy_document_ingestion import (
+    EmbeddingUnavailableError,
+)
+from app.services.policy_document_ingestion import (
+    search_policy_documents as _search_policy_documents,
+)
 
 
 def get_financial_summary(db: Session, client: Client) -> dict:
@@ -203,6 +210,25 @@ def compare_funds(
     }
 
 
+def search_policy_documents(
+    db: Session, client: Client, query: str, k: int = 4
+) -> dict:
+    """Searches this client's ingested insurance policy documents for
+    passages relevant to `query`, returning cited passages with their
+    source document and a relevance score. `db` is unused -- pgvector
+    search goes through its own connection (see
+    policy_document_ingestion.get_vectorstore) -- kept only so this
+    handler's signature matches every other tool's
+    (db, client, **kwargs) shape that build_langchain_tools binds via
+    functools.partial."""
+    try:
+        results = _search_policy_documents(client.id, query, k)
+    except EmbeddingUnavailableError as exc:
+        return {"results": [], "warning": str(exc)}
+
+    return {"results": results}
+
+
 @dataclass(frozen=True)
 class ToolDefinition:
     name: str
@@ -269,6 +295,27 @@ AI_TOOLS: list[ToolDefinition] = [
         },
         handler=compare_funds,
     ),
+    ToolDefinition(
+        name="search_policy_documents",
+        description=search_policy_documents.__doc__ or "",
+        input_schema={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "What to search for in this client's policy documents."
+                    ),
+                },
+                "k": {
+                    "type": "integer",
+                    "description": "How many passages to return (default 4).",
+                },
+            },
+            "required": ["query"],
+        },
+        handler=search_policy_documents,
+    ),
 ]
 
 TOOLS_BY_NAME: dict[str, ToolDefinition] = {tool.name: tool for tool in AI_TOOLS}
@@ -287,9 +334,16 @@ def _args_schema_model(definition: ToolDefinition) -> type:
     JSON Schema) for LangChain's StructuredTool to validate arguments
     against -- reusing the same schema already sent to the model,
     rather than maintaining two descriptions of each tool's
-    arguments."""
+    arguments.
+
+    An optional field's default comes from the handler's own Python
+    default (e.g. search_policy_documents' `k: int = 4`), not a bare
+    None -- otherwise a model response that omits an optional
+    argument would pass None straight through to the handler,
+    overriding its real default."""
     properties: dict = definition.input_schema.get("properties", {})
     required = set(definition.input_schema.get("required", []))
+    handler_params = inspect.signature(definition.handler).parameters
 
     fields: dict[str, tuple] = {}
     for field_name, field_schema in properties.items():
@@ -300,7 +354,16 @@ def _args_schema_model(definition: ToolDefinition) -> type:
         else:
             python_type = _JSON_SCHEMA_SCALAR_TYPES.get(json_type, str)
 
-        default = ... if field_name in required else None
+        if field_name in required:
+            default = ...
+        else:
+            handler_default = handler_params[field_name].default
+            default = (
+                handler_default
+                if handler_default is not inspect.Parameter.empty
+                else None
+            )
+
         fields[field_name] = (python_type, default)
 
     return create_model(f"{definition.name}_Args", **fields)

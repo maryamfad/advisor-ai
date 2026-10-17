@@ -18,6 +18,10 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
+# Uploaded client documents (apps/api/app/api/routes/documents.py) --
+# local-disk storage, never meant to be committed.
+apps/api/data/
+
 # =========================
 # Environment
 # =========================
@@ -30,6 +34,7 @@ venv/
 # =========================
 .vscode/
 .idea/
+.claude/
 
 # =========================
 # OS
