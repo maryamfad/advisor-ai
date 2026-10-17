@@ -2,6 +2,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage, ToolMessage
 from sqlalchemy.orm import Session
 
 import app.services.ai_agent as ai_agent_module
@@ -10,6 +11,7 @@ from app.models.advisor import Advisor
 from app.models.ai_conversation import AiConversation, AiMessage, MessageRole
 from app.models.client import Client as ClientModel
 from app.services.ai_agent import run_agent_turn
+from tests._fake_chat_model import patch_chat_model
 
 
 def _headers(advisor_id: int) -> dict[str, str]:
@@ -43,55 +45,6 @@ def _make_conversation(
     return conversation
 
 
-class _FakeTextBlock:
-    def __init__(self, text: str) -> None:
-        self.type = "text"
-        self.text = text
-
-
-class _FakeToolUseBlock:
-    def __init__(self, name: str, tool_input: dict, block_id: str = "tool_1") -> None:
-        self.type = "tool_use"
-        self.name = name
-        self.input = tool_input
-        self.id = block_id
-
-
-class _FakeResponse:
-    def __init__(self, content: list) -> None:
-        self.content = content
-
-
-class _FakeMessages:
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self._responses = list(responses)
-        self.calls: list[dict] = []
-
-    def create(self, **kwargs) -> _FakeResponse:
-        self.calls.append(kwargs)
-        if not self._responses:
-            raise AssertionError("Fake Anthropic client ran out of canned responses")
-        return self._responses.pop(0)
-
-
-class _FakeAnthropicClient:
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self.messages = _FakeMessages(responses)
-
-
-def _patch_anthropic(
-    monkeypatch, responses: list[_FakeResponse]
-) -> _FakeAnthropicClient:
-    fake_client = _FakeAnthropicClient(responses)
-    monkeypatch.setattr(
-        ai_agent_module.settings, "anthropic_api_key", "fake-test-key"
-    )
-    monkeypatch.setattr(
-        ai_agent_module.anthropic, "Anthropic", lambda **kwargs: fake_client
-    )
-    return fake_client
-
-
 def test_missing_api_key_raises(
     api_client: TestClient, advisor: Advisor, db_session: Session, monkeypatch
 ) -> None:
@@ -113,9 +66,10 @@ def test_single_turn_with_no_tool_calls(
     conversation = _make_conversation(db_session, client["id"], advisor.id)
     client_orm = db_session.get(ClientModel, client["id"])
 
-    _patch_anthropic(
+    patch_chat_model(
         monkeypatch,
-        [_FakeResponse([_FakeTextBlock("Hello, how can I help?")])],
+        ai_agent_module,
+        [AIMessage(content="Hello, how can I help?")],
     )
 
     result = run_agent_turn(db_session, conversation, client_orm, "Hi there")
@@ -141,13 +95,17 @@ def test_tool_call_then_final_answer(
     conversation = _make_conversation(db_session, client["id"], advisor.id)
     client_orm = db_session.get(ClientModel, client["id"])
 
-    fake_client = _patch_anthropic(
+    fake_model = patch_chat_model(
         monkeypatch,
+        ai_agent_module,
         [
-            _FakeResponse(
-                [_FakeToolUseBlock("get_financial_summary", {}, block_id="t1")]
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "get_financial_summary", "args": {}, "id": "t1"}
+                ],
             ),
-            _FakeResponse([_FakeTextBlock("The client's net worth is as shown.")]),
+            AIMessage(content="The client's net worth is as shown."),
         ],
     )
 
@@ -171,11 +129,12 @@ def test_tool_call_then_final_answer(
     assert len(tool_messages) == 1
     assert tool_messages[0].tool_name == "get_financial_summary"
 
-    # Second .create() call's `messages` should include the tool_result.
-    assert len(fake_client.messages.calls) == 2
-    second_call_messages = fake_client.messages.calls[1]["messages"]
-    assert second_call_messages[-1]["role"] == "user"
-    assert second_call_messages[-1]["content"][0]["type"] == "tool_result"
+    # Second model call should include the tool's result as a
+    # ToolMessage matching the first call's tool_call id.
+    assert len(fake_model.calls) == 2
+    second_call_messages = fake_model.calls[1]
+    assert isinstance(second_call_messages[-1], ToolMessage)
+    assert second_call_messages[-1].tool_call_id == "t1"
 
 
 def test_max_iterations_returns_fallback_not_infinite_loop(
@@ -187,12 +146,15 @@ def test_max_iterations_returns_fallback_not_infinite_loop(
 
     monkeypatch.setattr(ai_agent_module.settings, "ai_agent_max_tool_iterations", 3)
     always_tool_use = [
-        _FakeResponse(
-            [_FakeToolUseBlock("get_financial_summary", {}, block_id=f"t{i}")]
+        AIMessage(
+            content="",
+            tool_calls=[
+                {"name": "get_financial_summary", "args": {}, "id": f"t{i}"}
+            ],
         )
         for i in range(10)  # more than max_tool_iterations
     ]
-    _patch_anthropic(monkeypatch, always_tool_use)
+    patch_chat_model(monkeypatch, ai_agent_module, always_tool_use)
 
     result = run_agent_turn(db_session, conversation, client_orm, "Keep going forever")
 
@@ -223,14 +185,17 @@ def test_history_includes_prior_turns(
     )
     db_session.commit()
 
-    fake_client = _patch_anthropic(
+    fake_model = patch_chat_model(
         monkeypatch,
-        [_FakeResponse([_FakeTextBlock("Following up on that.")])],
+        ai_agent_module,
+        [AIMessage(content="Following up on that.")],
     )
 
     run_agent_turn(db_session, conversation, client_orm, "And now?")
 
-    first_call_messages = fake_client.messages.calls[0]["messages"]
-    assert first_call_messages[0]["content"] == "What's the client's risk tolerance?"
-    assert first_call_messages[1]["content"] == "No risk tolerance data is on file yet."
-    assert first_call_messages[2]["content"] == "And now?"
+    # calls[0][0] is the prepended system prompt -- the replayed
+    # history (and the new user message) follows it.
+    first_call_messages = fake_model.calls[0]
+    assert first_call_messages[1].content == "What's the client's risk tolerance?"
+    assert first_call_messages[2].content == "No risk tolerance data is on file yet."
+    assert first_call_messages[3].content == "And now?"

@@ -1,7 +1,9 @@
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage
 
 import app.services.ai_agent as ai_agent_module
 from app.models.advisor import Advisor
+from tests._fake_chat_model import patch_chat_model
 
 
 def _headers(advisor_id: int) -> dict[str, str]:
@@ -16,38 +18,8 @@ def _create_client(api_client: TestClient, advisor_id: int, email: str) -> dict:
     ).json()
 
 
-class _FakeTextBlock:
-    def __init__(self, text: str) -> None:
-        self.type = "text"
-        self.text = text
-
-
-class _FakeResponse:
-    def __init__(self, content: list) -> None:
-        self.content = content
-
-
-class _FakeMessages:
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self._responses = list(responses)
-
-    def create(self, **kwargs) -> _FakeResponse:
-        return self._responses.pop(0)
-
-
-class _FakeAnthropicClient:
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self.messages = _FakeMessages(responses)
-
-
 def _patch_anthropic(monkeypatch, reply_text: str) -> None:
-    fake_client = _FakeAnthropicClient([_FakeResponse([_FakeTextBlock(reply_text)])])
-    monkeypatch.setattr(
-        ai_agent_module.settings, "anthropic_api_key", "fake-test-key"
-    )
-    monkeypatch.setattr(
-        ai_agent_module.anthropic, "Anthropic", lambda **kwargs: fake_client
-    )
+    patch_chat_model(monkeypatch, ai_agent_module, [AIMessage(content=reply_text)])
 
 
 def test_create_conversation_requires_owned_client(

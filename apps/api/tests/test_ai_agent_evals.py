@@ -13,6 +13,7 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage
 from sqlalchemy.orm import Session
 
 import app.services.ai_agent as ai_agent_module
@@ -22,6 +23,7 @@ from app.models.ai_conversation import AiConversation
 from app.models.client import Client as ClientModel
 from app.services.ai_agent import run_agent_turn
 from app.services.ai_tools import MarketDataUnavailableError
+from tests._fake_chat_model import patch_chat_model
 
 
 def _headers(advisor_id: int) -> dict[str, str]:
@@ -55,58 +57,12 @@ def _make_conversation(
     return conversation
 
 
-class _FakeTextBlock:
-    def __init__(self, text: str) -> None:
-        self.type = "text"
-        self.text = text
-
-
-class _FakeToolUseBlock:
-    def __init__(self, name: str, tool_input: dict, block_id: str) -> None:
-        self.type = "tool_use"
-        self.name = name
-        self.input = tool_input
-        self.id = block_id
-
-
-class _FakeResponse:
-    def __init__(self, content: list) -> None:
-        self.content = content
-
-
-class _ScriptedMessages:
-    """Each call to .create() returns the next scripted response --
-    standing in for a model that decided, in order, which tools to
-    call and when to give a final answer."""
-
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self._responses = list(responses)
-
-    def create(self, **kwargs) -> _FakeResponse:
-        if not self._responses:
-            raise AssertionError("Eval script ran out of canned responses")
-        return self._responses.pop(0)
-
-
-class _ScriptedAnthropicClient:
-    def __init__(self, responses: list[_FakeResponse]) -> None:
-        self.messages = _ScriptedMessages(responses)
-
-
-def _patch_anthropic(monkeypatch, responses: list[_FakeResponse]) -> None:
-    fake_client = _ScriptedAnthropicClient(responses)
-    monkeypatch.setattr(
-        ai_agent_module.settings, "anthropic_api_key", "fake-test-key"
-    )
-    monkeypatch.setattr(
-        ai_agent_module.anthropic, "Anthropic", lambda **kwargs: fake_client
-    )
-
-
-def _tool_use_then_answer(tool_name: str, answer: str) -> list[_FakeResponse]:
+def _tool_use_then_answer(tool_name: str, answer: str) -> list[AIMessage]:
     return [
-        _FakeResponse([_FakeToolUseBlock(tool_name, {}, block_id="t1")]),
-        _FakeResponse([_FakeTextBlock(answer)]),
+        AIMessage(
+            content="", tool_calls=[{"name": tool_name, "args": {}, "id": "t1"}]
+        ),
+        AIMessage(content=answer),
     ]
 
 
@@ -118,8 +74,9 @@ class TestScriptedToolCallSequences:
         conversation = _make_conversation(db_session, client["id"], advisor.id)
         client_orm = db_session.get(ClientModel, client["id"])
 
-        _patch_anthropic(
+        patch_chat_model(
             monkeypatch,
+            ai_agent_module,
             _tool_use_then_answer(
                 "get_registered_account_recommendations",
                 "Based on the recommendations, prioritize the FHSA first.",
@@ -143,23 +100,27 @@ class TestScriptedToolCallSequences:
         conversation = _make_conversation(db_session, client["id"], advisor.id)
         client_orm = db_session.get(ClientModel, client["id"])
 
-        _patch_anthropic(
+        patch_chat_model(
             monkeypatch,
+            ai_agent_module,
             [
-                _FakeResponse(
-                    [
-                        _FakeToolUseBlock("get_financial_summary", {}, block_id="t1"),
-                        _FakeToolUseBlock(
-                            "get_insurance_recommendation", {}, block_id="t2"
-                        ),
-                        _FakeToolUseBlock(
-                            "get_registered_account_recommendations",
-                            {},
-                            block_id="t3",
-                        ),
-                    ]
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {"name": "get_financial_summary", "args": {}, "id": "t1"},
+                        {
+                            "name": "get_insurance_recommendation",
+                            "args": {},
+                            "id": "t2",
+                        },
+                        {
+                            "name": "get_registered_account_recommendations",
+                            "args": {},
+                            "id": "t3",
+                        },
+                    ],
                 ),
-                _FakeResponse([_FakeTextBlock("Here's the full briefing...")]),
+                AIMessage(content="Here's the full briefing..."),
             ],
         )
 
@@ -184,8 +145,9 @@ class TestScriptedToolCallSequences:
         conversation = _make_conversation(db_session, client["id"], advisor.id)
         client_orm = db_session.get(ClientModel, client["id"])
 
-        _patch_anthropic(
+        patch_chat_model(
             monkeypatch,
+            ai_agent_module,
             _tool_use_then_answer(
                 "get_risk_tolerance", "This client's risk tolerance is on file as..."
             ),
@@ -213,12 +175,15 @@ class TestGuardrails:
         # again -- if the loop didn't cap iterations, this would spin
         # forever.
         never_ending = [
-            _FakeResponse(
-                [_FakeToolUseBlock("get_financial_summary", {}, block_id=f"t{i}")]
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "get_financial_summary", "args": {}, "id": f"t{i}"}
+                ],
             )
             for i in range(50)
         ]
-        _patch_anthropic(monkeypatch, never_ending)
+        patch_chat_model(monkeypatch, ai_agent_module, never_ending)
 
         result = run_agent_turn(
             db_session, conversation, client_orm, "Keep checking forever"
@@ -235,23 +200,25 @@ class TestGuardrails:
         client_orm = db_session.get(ClientModel, client["id"])
         # Deliberately no tracked-fund selection made for this client.
 
-        _patch_anthropic(
+        patch_chat_model(
             monkeypatch,
+            ai_agent_module,
             [
-                _FakeResponse(
-                    [
-                        _FakeToolUseBlock(
-                            "compare_funds",
-                            {
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "compare_funds",
+                            "args": {
                                 "symbols": ["SPY"],
                                 "start_date": "2026-01-05",
                                 "end_date": "2026-01-09",
                             },
-                            block_id="t1",
-                        )
-                    ]
+                            "id": "t1",
+                        }
+                    ],
                 ),
-                _FakeResponse([_FakeTextBlock("SPY isn't tracked for this client.")]),
+                AIMessage(content="SPY isn't tracked for this client."),
             ],
         )
 

@@ -1,9 +1,10 @@
 """The agentic orchestration loop: turns a user's natural-language
-question into a sequence of tool calls against ai_tools.py, then a
-final prose reply. The model never computes a financial number
-itself, only calls tools and explains what they returned -- the same
-principle stated in financial_calculations.py's docstring, now
-actually wired up to an LLM.
+question into a sequence of tool calls, then a final prose reply. The
+model never computes a financial number itself, only calls tools and
+explains what they returned -- the same principle stated in
+financial_calculations.py's docstring, now actually wired up to an
+LLM via a LangGraph state machine (see ai_graph.py for the graph
+itself).
 
 Deliberately NOT pure -- it makes a live API call and touches the DB
 -- kept in app/services/ anyway as a clearly-labeled exception, same
@@ -11,16 +12,20 @@ category as market_data_client.py and client_financial_snapshot.py.
 """
 
 import json
+import uuid
 from dataclasses import dataclass
 
-import anthropic
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langgraph.errors import GraphRecursionError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.ai_conversation import AiConversation, AiMessage, MessageRole
 from app.models.client import Client
-from app.services.ai_tools import AI_TOOLS, TOOLS_BY_NAME
+from app.services.ai_graph import build_agent_graph, recursion_limit_for
+from app.services.ai_tools import build_langchain_tools
 
 MAX_RESPONSE_TOKENS = 1024
 
@@ -43,6 +48,11 @@ specific tool call(s) that back it.
 rather than guessing.
 """
 
+FALLBACK_REPLY = (
+    "I wasn't able to finish answering that within the allowed number "
+    "of tool calls. Try asking a more specific question."
+)
+
 
 @dataclass(frozen=True)
 class ToolCallRecord:
@@ -57,18 +67,7 @@ class AssistantTurnResult:
     tool_calls: list[ToolCallRecord]
 
 
-def _anthropic_tool_schemas() -> list[dict]:
-    return [
-        {
-            "name": tool.name,
-            "description": tool.description,
-            "input_schema": tool.input_schema,
-        }
-        for tool in AI_TOOLS
-    ]
-
-
-def _load_history(db: Session, conversation: AiConversation) -> list[dict]:
+def _load_history(db: Session, conversation: AiConversation) -> list[BaseMessage]:
     """Prior USER/ASSISTANT turns, in order -- intermediate TOOL rows
     from past turns aren't replayed, since the assistant's final text
     for each turn already captures what mattered for continuity. The
@@ -83,7 +82,51 @@ def _load_history(db: Session, conversation: AiConversation) -> list[dict]:
         .order_by(AiMessage.created_at)
     )
     rows = db.scalars(stmt).all()
-    return [{"role": row.role.value, "content": row.content} for row in rows]
+    return [
+        HumanMessage(content=row.content)
+        if row.role == MessageRole.USER
+        else AIMessage(content=row.content)
+        for row in rows
+    ]
+
+
+def _persist_tool_messages(
+    db: Session, conversation: AiConversation, new_messages: list[BaseMessage]
+) -> list[ToolCallRecord]:
+    """Walks the messages a graph run added beyond the input history,
+    persisting one AiMessage(role=TOOL) per ToolMessage and returning
+    a matching ToolCallRecord for each -- tool_input is recovered from
+    the triggering AIMessage.tool_calls entry (matched by id), since a
+    ToolMessage itself only carries the tool's name and output."""
+    tool_calls: list[ToolCallRecord] = []
+    pending_args_by_id: dict[str, dict] = {}
+
+    for message in new_messages:
+        if isinstance(message, AIMessage) and message.tool_calls:
+            for call in message.tool_calls:
+                pending_args_by_id[call["id"]] = call["args"]
+        elif isinstance(message, ToolMessage):
+            tool_input = pending_args_by_id.pop(message.tool_call_id, {})
+            tool_output = json.loads(message.content)
+
+            db.add(
+                AiMessage(
+                    conversation_id=conversation.id,
+                    role=MessageRole.TOOL,
+                    content=message.content,
+                    tool_name=message.name,
+                    tool_input=tool_input,
+                )
+            )
+            tool_calls.append(
+                ToolCallRecord(
+                    tool_name=message.name,
+                    tool_input=tool_input,
+                    tool_output=tool_output,
+                )
+            )
+
+    return tool_calls
 
 
 def run_agent_turn(
@@ -98,8 +141,6 @@ def run_agent_turn(
             "AI assistant."
         )
 
-    api_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
     db.add(
         AiMessage(
             conversation_id=conversation.id,
@@ -109,87 +150,57 @@ def run_agent_turn(
     )
     db.commit()
 
-    messages = _load_history(db, conversation)
-    tool_calls: list[ToolCallRecord] = []
-    tool_schemas = _anthropic_tool_schemas()
-
-    for _ in range(settings.ai_agent_max_tool_iterations):
-        response = api_client.messages.create(
-            model=settings.ai_agent_model,
-            max_tokens=MAX_RESPONSE_TOKENS,
-            system=SYSTEM_PROMPT,
-            tools=tool_schemas,
-            messages=messages,
-        )
-
-        tool_use_blocks = [
-            block for block in response.content if block.type == "tool_use"
-        ]
-
-        if not tool_use_blocks:
-            final_text = "".join(
-                block.text for block in response.content if block.type == "text"
-            )
-            db.add(
-                AiMessage(
-                    conversation_id=conversation.id,
-                    role=MessageRole.ASSISTANT,
-                    content=final_text,
-                )
-            )
-            db.commit()
-            return AssistantTurnResult(reply=final_text, tool_calls=tool_calls)
-
-        messages.append({"role": "assistant", "content": response.content})
-
-        tool_results = []
-        for block in tool_use_blocks:
-            tool = TOOLS_BY_NAME.get(block.name)
-            if tool is None:
-                output = {"error": f"Unknown tool: {block.name}"}
-            else:
-                output = tool.handler(db, client, **block.input)
-
-            tool_calls.append(
-                ToolCallRecord(
-                    tool_name=block.name, tool_input=block.input, tool_output=output
-                )
-            )
-
-            db.add(
-                AiMessage(
-                    conversation_id=conversation.id,
-                    role=MessageRole.TOOL,
-                    content=json.dumps(output),
-                    tool_name=block.name,
-                    tool_input=block.input,
-                )
-            )
-
-            tool_results.append(
-                {
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": json.dumps(output),
-                }
-            )
-
-        db.commit()
-        messages.append({"role": "user", "content": tool_results})
-
-    # Exceeded ai_agent_max_tool_iterations without a final answer --
-    # this is the guardrail against a pathological tool-call loop.
-    fallback = (
-        "I wasn't able to finish answering that within the allowed number "
-        "of tool calls. Try asking a more specific question."
+    history = _load_history(db, conversation)
+    tools = build_langchain_tools(db, client)
+    llm = ChatAnthropic(
+        model=settings.ai_agent_model,
+        api_key=settings.anthropic_api_key,
+        max_tokens=MAX_RESPONSE_TOKENS,
     )
+    graph = build_agent_graph(llm, tools, SYSTEM_PROMPT)
+
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    invoke_config = {
+        **thread_config,
+        "recursion_limit": recursion_limit_for(settings.ai_agent_max_tool_iterations),
+    }
+
+    try:
+        graph.invoke({"messages": history}, config=invoke_config)
+        hit_recursion_limit = False
+    except GraphRecursionError:
+        hit_recursion_limit = True
+
+    # Read back from the checkpointer either way: on success this is
+    # the same final state .invoke() returned; on GraphRecursionError
+    # it's whatever got checkpointed up to the last completed step --
+    # the only way to recover which tool calls already ran before the
+    # cap was hit.
+    final_messages: list[BaseMessage] = graph.get_state(thread_config).values[
+        "messages"
+    ]
+    new_messages = final_messages[len(history) :]  # drop the replayed history
+    tool_calls = _persist_tool_messages(db, conversation, new_messages)
+    db.commit()
+
+    if hit_recursion_limit:
+        db.add(
+            AiMessage(
+                conversation_id=conversation.id,
+                role=MessageRole.ASSISTANT,
+                content=FALLBACK_REPLY,
+            )
+        )
+        db.commit()
+        return AssistantTurnResult(reply=FALLBACK_REPLY, tool_calls=tool_calls)
+
+    final_text = final_messages[-1].content
     db.add(
         AiMessage(
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
-            content=fallback,
+            content=final_text,
         )
     )
     db.commit()
-
-    return AssistantTurnResult(reply=fallback, tool_calls=tool_calls)
+    return AssistantTurnResult(reply=final_text, tool_calls=tool_calls)

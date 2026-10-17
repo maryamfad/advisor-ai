@@ -22,10 +22,14 @@ POST /financial-plans. Any actual write stays a deliberate advisor
 action through the normal REST endpoints.
 """
 
+import functools
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 
+from langchain_core.tools import StructuredTool
+from pydantic import create_model
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -268,3 +272,68 @@ AI_TOOLS: list[ToolDefinition] = [
 ]
 
 TOOLS_BY_NAME: dict[str, ToolDefinition] = {tool.name: tool for tool in AI_TOOLS}
+
+
+_JSON_SCHEMA_SCALAR_TYPES: dict[str, type] = {
+    "string": str,
+    "number": float,
+    "integer": int,
+    "boolean": bool,
+}
+
+
+def _args_schema_model(definition: ToolDefinition) -> type:
+    """Builds a pydantic model from a tool's `input_schema` (plain
+    JSON Schema) for LangChain's StructuredTool to validate arguments
+    against -- reusing the same schema already sent to the model,
+    rather than maintaining two descriptions of each tool's
+    arguments."""
+    properties: dict = definition.input_schema.get("properties", {})
+    required = set(definition.input_schema.get("required", []))
+
+    fields: dict[str, tuple] = {}
+    for field_name, field_schema in properties.items():
+        json_type = field_schema.get("type", "string")
+        if json_type == "array":
+            item_type = field_schema.get("items", {}).get("type", "string")
+            python_type = list[_JSON_SCHEMA_SCALAR_TYPES.get(item_type, str)]
+        else:
+            python_type = _JSON_SCHEMA_SCALAR_TYPES.get(json_type, str)
+
+        default = ... if field_name in required else None
+        fields[field_name] = (python_type, default)
+
+    return create_model(f"{definition.name}_Args", **fields)
+
+
+def build_langchain_tools(db: Session, client: Client) -> list[StructuredTool]:
+    """Builds the tools fresh for one request, bound to that request's
+    `db` session and ownership-verified `client` -- never shared
+    across requests/conversations. Each handler's
+    `(db, client, **kwargs)` signature is untouched; binding `db` and
+    `client` via `functools.partial` leaves a callable whose remaining
+    signature is exactly what the model is allowed to supply.
+
+    Wraps every handler's dict return as a JSON string rather than
+    letting LangGraph's ToolNode fall back to `str(result)` (a Python
+    repr, not valid JSON) -- the caller persists this string directly
+    as an AiMessage's `content`, and the frontend JSON.parses it.
+    """
+    tools: list[StructuredTool] = []
+
+    for definition in AI_TOOLS:
+        bound_handler = functools.partial(definition.handler, db, client)
+
+        def _run(_handler=bound_handler, **kwargs) -> str:
+            return json.dumps(_handler(**kwargs))
+
+        tools.append(
+            StructuredTool.from_function(
+                func=_run,
+                name=definition.name,
+                description=definition.description,
+                args_schema=_args_schema_model(definition),
+            )
+        )
+
+    return tools
