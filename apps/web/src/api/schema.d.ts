@@ -352,6 +352,41 @@ export interface paths {
         patch: operations["update_dependent_clients__client_id__dependents__dependent_id__patch"];
         trace?: never;
     };
+    "/clients/{client_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_clients__client_id__documents_get"];
+        put?: never;
+        /** Upload Document */
+        post: operations["upload_document_clients__client_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clients/{client_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Document */
+        delete: operations["delete_document_clients__client_id__documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clients/{client_id}/income-sources": {
         parameters: {
             query?: never;
@@ -979,6 +1014,13 @@ export interface components {
              */
             created_at: string;
         };
+        /** Body_upload_document_clients__client_id__documents_post */
+        Body_upload_document_clients__client_id__documents_post: {
+            /** File */
+            file: string;
+            /** @default other */
+            category: components["schemas"]["DocumentCategory"];
+        };
         /**
          * BudgetCreate
          * @description Payload for POST /clients/{client_id}/budgets. client_id comes
@@ -1283,6 +1325,32 @@ export interface components {
             date_of_birth?: string | null;
             /** Years Of Education Remaining */
             years_of_education_remaining?: number | null;
+        };
+        /**
+         * DocumentCategory
+         * @enum {string}
+         */
+        DocumentCategory: "statement" | "tax_document" | "insurance_policy" | "identification" | "other";
+        /** DocumentRead */
+        DocumentRead: {
+            /** Id */
+            id: number;
+            /** Client Id */
+            client_id: number;
+            /** Uploaded By Advisor Id */
+            uploaded_by_advisor_id: number | null;
+            /** Filename */
+            filename: string;
+            /** Content Type */
+            content_type: string;
+            /** Storage Path */
+            storage_path: string;
+            category: components["schemas"]["DocumentCategory"];
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
         };
         /**
          * FinancialNeedsAnalysisCreate
@@ -3814,6 +3882,108 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DependentRead"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_clients__client_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-advisor-id"?: number | null;
+            };
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_clients__client_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-advisor-id"?: number | null;
+            };
+            path: {
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_document_clients__client_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_clients__client_id__documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-advisor-id"?: number | null;
+            };
+            path: {
+                document_id: number;
+                client_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

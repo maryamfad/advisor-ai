@@ -11,6 +11,7 @@ import { FnaTab } from '@/features/fna/FnaTab'
 import { RiskQuestionnaireTab } from '@/features/riskQuestionnaire/RiskQuestionnaireTab'
 import { FinancialPlanTab } from '@/features/financialPlan/FinancialPlanTab'
 import { FundsTab } from '@/features/funds/FundsTab'
+import { DocumentsTab } from '@/features/documents/DocumentsTab'
 import { AssistantTab } from '@/features/assistant/AssistantTab'
 
 const TABS = [
@@ -22,6 +23,7 @@ const TABS = [
   { value: 'risk', label: 'Risk Questionnaire' },
   { value: 'plan', label: 'Financial Plan' },
   { value: 'funds', label: 'Funds' },
+  { value: 'documents', label: 'Documents' },
   { value: 'assistant', label: 'Assistant' },
 ] as const
 
@@ -92,6 +94,9 @@ export function ClientDetailPage() {
         </TabsContent>
         <TabsContent value="funds">
           <FundsTab clientId={id} />
+        </TabsContent>
+        <TabsContent value="documents">
+          <DocumentsTab clientId={id} />
         </TabsContent>
         <TabsContent value="assistant">
           <AssistantTab clientId={id} />
