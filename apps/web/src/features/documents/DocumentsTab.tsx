@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { Trash2 } from 'lucide-react'
 
-import { useDocuments, useDeleteDocument, type Document } from '@/api/documents'
+import { useClientDocuments, useDeleteDocument, type Document } from '@/api/documents'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,8 +21,8 @@ import { formatDateTime, formatEnumLabel } from '@/lib/format'
 import { DocumentUploadDialog } from '@/features/documents/DocumentUploadDialog'
 
 export function DocumentsTab({ clientId }: { clientId: number }) {
-  const { data: documents, isLoading } = useDocuments(clientId)
-  const deleteDocument = useDeleteDocument(clientId)
+  const { data: documents, isLoading } = useClientDocuments(clientId)
+  const deleteDocument = useDeleteDocument()
 
   const columns: ColumnDef<Document>[] = [
     { accessorKey: 'filename', header: 'File' },
@@ -66,7 +66,9 @@ export function DocumentsTab({ clientId }: { clientId: number }) {
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   className={buttonVariants({ variant: 'destructive' })}
-                  onClick={() => deleteDocument.mutate(row.original.id)}
+                  onClick={() =>
+                    deleteDocument.mutate({ documentId: row.original.id, clientId })
+                  }
                 >
                   Delete
                 </AlertDialogAction>

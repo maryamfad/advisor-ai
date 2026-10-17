@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet } from 'react-router-dom'
-import { LineChart, Users } from 'lucide-react'
+import { FileText, LineChart, Users } from 'lucide-react'
 
 import { useAdvisor } from '@/context/AdvisorContext'
 import { useAdvisorById } from '@/api/advisors'
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { to: '/clients', label: 'Clients', icon: Users },
+  { to: '/documents', label: 'Documents', icon: FileText },
   { to: '/tracked-funds', label: 'Tracked Funds', icon: LineChart },
 ]
 

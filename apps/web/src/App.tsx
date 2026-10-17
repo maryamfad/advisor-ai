@@ -6,6 +6,7 @@ import { AdvisorSetupPage } from '@/features/advisors/AdvisorSetupPage'
 import { ClientsListPage } from '@/features/clients/ClientsListPage'
 import { ClientDetailPage } from '@/features/clients/ClientDetailPage'
 import { TrackedFundsPage } from '@/features/trackedFunds/TrackedFundsPage'
+import { DocumentsPage } from '@/features/documents/DocumentsPage'
 import { RiskQuestionnairePublicPage } from '@/features/riskQuestionnaire/RiskQuestionnairePublicPage'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<Navigate to="/clients" replace />} />
         <Route path="/clients" element={<ClientsListPage />} />
         <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/tracked-funds" element={<TrackedFundsPage />} />
       </Route>
 

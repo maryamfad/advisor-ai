@@ -32,6 +32,8 @@ const CATEGORIES: DocumentCategory[] = [
   'tax_document',
   'insurance_policy',
   'identification',
+  'regulatory',
+  'investment',
   'other',
 ]
 
@@ -39,20 +41,20 @@ export function DocumentUploadDialog({
   clientId,
   trigger,
 }: {
-  clientId: number
+  clientId?: number
   trigger: React.ReactNode
 }) {
   const [open, setOpen] = React.useState(false)
   const [file, setFile] = React.useState<File | null>(null)
   const [category, setCategory] = React.useState<DocumentCategory>('other')
-  const upload = useUploadDocument(clientId)
+  const upload = useUploadDocument()
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault()
     if (!file) return
 
     try {
-      await upload.mutateAsync({ file, category })
+      await upload.mutateAsync({ file, category, clientId })
       setOpen(false)
       setFile(null)
       setCategory('other')
@@ -96,7 +98,7 @@ export function DocumentUploadDialog({
               </SelectContent>
             </Select>
           </div>
-          {category === 'insurance_policy' && (
+          {category === 'insurance_policy' && clientId !== undefined && (
             <p className="text-sm text-muted-foreground">
               Insurance policy documents are searchable by the AI assistant once uploaded.
             </p>

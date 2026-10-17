@@ -359,18 +359,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Documents */
-        get: operations["list_documents_clients__client_id__documents_get"];
+        /** List Client Documents */
+        get: operations["list_client_documents_clients__client_id__documents_get"];
         put?: never;
-        /** Upload Document */
-        post: operations["upload_document_clients__client_id__documents_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/clients/{client_id}/documents/{document_id}": {
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_documents_get"];
+        put?: never;
+        /** Upload Document */
+        post: operations["upload_document_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{document_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -381,7 +398,7 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete Document */
-        delete: operations["delete_document_clients__client_id__documents__document_id__delete"];
+        delete: operations["delete_document_documents__document_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1014,12 +1031,14 @@ export interface components {
              */
             created_at: string;
         };
-        /** Body_upload_document_clients__client_id__documents_post */
-        Body_upload_document_clients__client_id__documents_post: {
+        /** Body_upload_document_documents_post */
+        Body_upload_document_documents_post: {
             /** File */
             file: string;
             /** @default other */
             category: components["schemas"]["DocumentCategory"];
+            /** Client Id */
+            client_id?: number | null;
         };
         /**
          * BudgetCreate
@@ -1330,13 +1349,15 @@ export interface components {
          * DocumentCategory
          * @enum {string}
          */
-        DocumentCategory: "statement" | "tax_document" | "insurance_policy" | "identification" | "other";
+        DocumentCategory: "statement" | "tax_document" | "insurance_policy" | "identification" | "regulatory" | "investment" | "other";
         /** DocumentRead */
         DocumentRead: {
             /** Id */
             id: number;
+            /** Advisor Id */
+            advisor_id: number;
             /** Client Id */
-            client_id: number;
+            client_id: number | null;
             /** Uploaded By Advisor Id */
             uploaded_by_advisor_id: number | null;
             /** Filename */
@@ -3894,7 +3915,7 @@ export interface operations {
             };
         };
     };
-    list_documents_clients__client_id__documents_get: {
+    list_client_documents_clients__client_id__documents_get: {
         parameters: {
             query?: never;
             header?: {
@@ -3927,20 +3948,51 @@ export interface operations {
             };
         };
     };
-    upload_document_clients__client_id__documents_post: {
+    list_documents_documents_get: {
+        parameters: {
+            query?: {
+                client_id?: number | null;
+            };
+            header?: {
+                "x-advisor-id"?: number | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_document_documents_post: {
         parameters: {
             query?: never;
             header?: {
                 "x-advisor-id"?: number | null;
             };
-            path: {
-                client_id: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["Body_upload_document_clients__client_id__documents_post"];
+                "multipart/form-data": components["schemas"]["Body_upload_document_documents_post"];
             };
         };
         responses: {
@@ -3964,7 +4016,7 @@ export interface operations {
             };
         };
     };
-    delete_document_clients__client_id__documents__document_id__delete: {
+    delete_document_documents__document_id__delete: {
         parameters: {
             query?: never;
             header?: {
@@ -3972,7 +4024,6 @@ export interface operations {
             };
             path: {
                 document_id: number;
-                client_id: number;
             };
             cookie?: never;
         };
