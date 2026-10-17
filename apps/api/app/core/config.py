@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     # has real bytes to read.
     document_storage_dir: str = "./data/documents"
 
+    # Off by default -- LangSmith tracing of the agent graph. These
+    # are read from .env (like every other setting here) and copied
+    # into real process env vars by app.core.tracing, since that's
+    # where the LangSmith SDK itself looks for them.
+    langsmith_tracing: bool = False
+    langsmith_api_key: str | None = None
+    langsmith_project: str = "advisor-ai"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

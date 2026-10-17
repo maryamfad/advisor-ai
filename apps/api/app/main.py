@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import api_router
 from app.core.config import settings
+from app.core.tracing import configure_langsmith_tracing
+
+configure_langsmith_tracing()
 
 app = FastAPI(
     title="AdvisorAI API",
