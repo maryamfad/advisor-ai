@@ -11,6 +11,8 @@ dependencies = [
     "pydantic[email]>=2.0",
     "alembic>=1.13",
     "anthropic>=0.122.0",
+    "langgraph>=0.2.60",
+    "langchain-anthropic>=0.3.0",
 ]
 
 [dependency-groups]
