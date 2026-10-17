@@ -166,6 +166,15 @@ class TestScriptedToolCallSequences:
         conversation = _make_conversation(db_session, client["id"], advisor.id)
         client_orm = db_session.get(ClientModel, client["id"])
 
+        # Isolate from whatever OPENAI_API_KEY is actually configured
+        # in this environment -- this eval only checks that the tool
+        # dispatches, not whether embeddings succeed, so force the
+        # "not configured" path deterministically rather than relying
+        # on the ambient .env having no key.
+        import app.services.policy_document_ingestion as ingestion_module
+
+        monkeypatch.setattr(ingestion_module.settings, "openai_api_key", None)
+
         patch_chat_model(
             monkeypatch,
             ai_agent_module,

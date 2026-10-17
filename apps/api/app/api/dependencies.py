@@ -205,15 +205,19 @@ def get_owned_dependent(
 def get_owned_document(
     document_id: int,
     db: Session = Depends(get_db),
-    client: Client = Depends(get_owned_client),
+    advisor_id: int = Depends(get_current_advisor_id),
 ) -> Document:
-    """Fetch a document by id, scoped to the already-verified owned
-    client. Used by routes nested under
-    /clients/{client_id}/documents/{document_id}.
+    """Fetch a document by id, scoped to the acting advisor.
+
+    Unlike most other per-client resources, a document isn't
+    necessarily linked to a client (Document.client_id is nullable,
+    same as Task), so this checks advisor ownership directly rather
+    than chaining through get_owned_client -- same pattern as
+    get_owned_task. Used by /documents/{document_id}.
     """
     document = db.get(Document, document_id)
 
-    if document is None or document.client_id != client.id:
+    if document is None or document.advisor_id != advisor_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found.",

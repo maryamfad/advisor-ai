@@ -63,6 +63,7 @@ def test_retrieval_hit_rate_across_eval_set(
         ).json()
 
         document = Document(
+            advisor_id=advisor.id,
             client_id=client["id"],
             filename=case.filename,
             content_type="text/plain",

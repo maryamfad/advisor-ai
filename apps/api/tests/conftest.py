@@ -80,10 +80,15 @@ def advisor() -> Generator[Advisor, None, None]:
     try:
         yield advisor
     finally:
-        # Tasks reference advisor_id directly (never null) and
-        # optionally client_id, so clear them first, before either
-        # clients or the advisor are touched.
+        # Tasks and Documents both reference advisor_id directly
+        # (never null) and optionally client_id, so clear them first,
+        # before either clients or the advisor are touched -- this
+        # also catches firm-wide documents (client_id is null), which
+        # the client_ids-scoped cleanup below would miss entirely.
         db.query(Task).filter(Task.advisor_id == advisor.id).delete(
+            synchronize_session=False
+        )
+        db.query(Document).filter(Document.advisor_id == advisor.id).delete(
             synchronize_session=False
         )
 
@@ -125,9 +130,6 @@ def advisor() -> Generator[Advisor, None, None]:
             )
             db.query(Dependent).filter(
                 Dependent.client_id.in_(client_ids)
-            ).delete(synchronize_session=False)
-            db.query(Document).filter(
-                Document.client_id.in_(client_ids)
             ).delete(synchronize_session=False)
             db.query(IncomeSource).filter(
                 IncomeSource.client_id.in_(client_ids)

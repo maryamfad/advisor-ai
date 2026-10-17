@@ -31,7 +31,33 @@ from app.services.policy_document_ingestion import (
     ingest_policy_document,
 )
 
-router = APIRouter(prefix="/clients/{client_id}/documents", tags=["documents"])
+router = APIRouter(prefix="/documents", tags=["documents"])
+
+# Read-only convenience route for browsing one client's documents.
+# Separate router (different prefix) registered alongside the one
+# above -- all mutation (upload/delete) lives on the advisor-scoped
+# router, same split as tasks.py's router/client_tasks_router.
+client_documents_router = APIRouter(
+    prefix="/clients/{client_id}/documents", tags=["documents"]
+)
+
+
+def _validate_client_ownership(
+    db: Session, client_id: int | None, advisor_id: int
+) -> None:
+    """If a client_id is supplied, make sure it refers to a client
+    actually owned by the acting advisor -- otherwise an advisor could
+    attach a document to a client that isn't theirs."""
+    if client_id is None:
+        return
+
+    client = db.get(Client, client_id)
+
+    if client is None or client.advisor_id != advisor_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No client with id {client_id} owned by this advisor.",
+        )
 
 
 def _extract_text(filename: str, raw_bytes: bytes) -> str:
@@ -49,19 +75,34 @@ def _extract_text(filename: str, raw_bytes: bytes) -> str:
 def upload_document(
     file: UploadFile = File(...),
     category: DocumentCategory = Form(DocumentCategory.OTHER),
+    client_id: int | None = Form(None),
     db: Session = Depends(get_db),
-    client: Client = Depends(get_owned_client),
     advisor_id: int = Depends(get_current_advisor_id),
 ) -> Document:
+    _validate_client_ownership(db, client_id, advisor_id)
+
+    if category == DocumentCategory.INSURANCE_POLICY and client_id is None:
+        # RAG search (search_policy_documents) is always scoped to a
+        # client -- a policy document with no client would be
+        # ingested but never findable, so reject it up front rather
+        # than silently accepting a file nothing can retrieve.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Insurance policy documents must belong to a client.",
+        )
+
     raw_bytes = file.file.read()
 
-    client_dir = Path(settings.document_storage_dir) / str(client.id)
-    client_dir.mkdir(parents=True, exist_ok=True)
-    storage_path = client_dir / f"{uuid.uuid4().hex}_{file.filename}"
+    storage_dir = Path(settings.document_storage_dir) / (
+        str(client_id) if client_id is not None else "firm"
+    )
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    storage_path = storage_dir / f"{uuid.uuid4().hex}_{file.filename}"
     storage_path.write_bytes(raw_bytes)
 
     document = Document(
-        client_id=client.id,
+        advisor_id=advisor_id,
+        client_id=client_id,
         uploaded_by_advisor_id=advisor_id,
         filename=file.filename,
         content_type=file.content_type or "application/octet-stream",
@@ -90,9 +131,13 @@ def upload_document(
 @router.get("", response_model=list[DocumentRead])
 def list_documents(
     db: Session = Depends(get_db),
-    client: Client = Depends(get_owned_client),
+    advisor_id: int = Depends(get_current_advisor_id),
+    client_id: int | None = None,
 ) -> list[Document]:
-    stmt = select(Document).where(Document.client_id == client.id)
+    stmt = select(Document).where(Document.advisor_id == advisor_id)
+
+    if client_id is not None:
+        stmt = stmt.where(Document.client_id == client_id)
 
     return list(db.scalars(stmt).all())
 
@@ -109,3 +154,13 @@ def delete_document(
 
     db.delete(document)
     db.commit()
+
+
+@client_documents_router.get("", response_model=list[DocumentRead])
+def list_client_documents(
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> list[Document]:
+    stmt = select(Document).where(Document.client_id == client.id)
+
+    return list(db.scalars(stmt).all())

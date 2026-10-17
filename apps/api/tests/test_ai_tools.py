@@ -262,6 +262,7 @@ class TestSearchPolicyDocuments:
         client_orm = _fetch_client(db_session, client["id"])
 
         document = Document(
+            advisor_id=advisor.id,
             client_id=client_orm.id,
             filename="policy.txt",
             content_type="text/plain",

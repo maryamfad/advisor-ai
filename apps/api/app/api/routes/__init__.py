@@ -7,6 +7,7 @@ from app.api.routes.budgets import router as budgets_router
 from app.api.routes.clients import router as clients_router
 from app.api.routes.debts import router as debts_router
 from app.api.routes.dependents import router as dependents_router
+from app.api.routes.documents import client_documents_router
 from app.api.routes.documents import router as documents_router
 from app.api.routes.financial_needs_analyses import (
     router as financial_needs_analyses_router,
@@ -39,6 +40,7 @@ api_router.include_router(client_tasks_router)
 api_router.include_router(tasks_router)
 api_router.include_router(spouse_router)
 api_router.include_router(dependents_router)
+api_router.include_router(client_documents_router)
 api_router.include_router(documents_router)
 api_router.include_router(income_sources_router)
 api_router.include_router(debts_router)

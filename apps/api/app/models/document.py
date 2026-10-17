@@ -18,6 +18,8 @@ class DocumentCategory(enum.StrEnum):
     TAX_DOCUMENT = "tax_document"
     INSURANCE_POLICY = "insurance_policy"
     IDENTIFICATION = "identification"
+    REGULATORY = "regulatory"
+    INVESTMENT = "investment"
     OTHER = "other"
 
 
@@ -26,9 +28,20 @@ class Document(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"),
+    # The real owner, always set -- a document may or may not belong
+    # to a client (client_id below is nullable, same shape as Task),
+    # so ownership is always checked against this column directly,
+    # never by chaining through the client. Distinct from
+    # uploaded_by_advisor_id, which just records who clicked upload.
+    advisor_id: Mapped[int] = mapped_column(
+        ForeignKey("advisors.id"),
         nullable=False,
+        index=True,
+    )
+
+    client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clients.id"),
+        nullable=True,
         index=True,
     )
 
@@ -65,11 +78,17 @@ class Document(Base):
         default=datetime.utcnow,
     )
 
-    client: Mapped["Client"] = relationship(
+    advisor: Mapped["Advisor"] = relationship(
+        "Advisor",
+        foreign_keys=[advisor_id],
+    )
+
+    client: Mapped["Client | None"] = relationship(
         "Client",
         back_populates="documents",
     )
 
     uploaded_by: Mapped["Advisor | None"] = relationship(
         "Advisor",
+        foreign_keys=[uploaded_by_advisor_id],
     )
