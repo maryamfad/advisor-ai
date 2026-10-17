@@ -153,3 +153,80 @@ def test_insurance_policy_search_is_scoped_to_client(
 
     assert len(results_for_a) == 1
     assert results_for_a[0]["source_document"] == "policy_a.txt"
+
+
+def test_delete_document_removes_row_and_file(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "doc6@example.com")
+    upload = api_client.post(
+        f"/clients/{client['id']}/documents",
+        files={"file": ("statement.txt", b"hello statement", "text/plain")},
+        data={"category": "statement"},
+        headers=_headers(advisor.id),
+    ).json()
+    storage_path = Path(upload["storage_path"])
+    assert storage_path.exists()
+
+    response = api_client.delete(
+        f"/clients/{client['id']}/documents/{upload['id']}",
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 204
+    assert not storage_path.exists()
+
+    list_response = api_client.get(
+        f"/clients/{client['id']}/documents", headers=_headers(advisor.id)
+    )
+    assert list_response.json() == []
+
+
+def test_delete_document_requires_owned_client(
+    api_client: TestClient, advisor: Advisor
+) -> None:
+    client = _create_client(api_client, advisor.id, "doc7@example.com")
+    upload = api_client.post(
+        f"/clients/{client['id']}/documents",
+        files={"file": ("statement.txt", b"hello statement", "text/plain")},
+        data={"category": "statement"},
+        headers=_headers(advisor.id),
+    ).json()
+    other_advisor_id = advisor.id + 999999
+
+    response = api_client.delete(
+        f"/clients/{client['id']}/documents/{upload['id']}",
+        headers=_headers(other_advisor_id),
+    )
+
+    assert response.status_code == 404
+
+
+def test_delete_insurance_policy_document_removes_it_from_search(
+    api_client: TestClient,
+    advisor: Advisor,
+    fake_policy_vectorstore: PGVector,
+) -> None:
+    client = _create_client(api_client, advisor.id, "doc8@example.com")
+    upload = api_client.post(
+        f"/clients/{client['id']}/documents",
+        files={
+            "file": (
+                "policy.txt",
+                b"This policy has a surrender value of ten thousand dollars.",
+                "text/plain",
+            )
+        },
+        data={"category": "insurance_policy"},
+        headers=_headers(advisor.id),
+    ).json()
+    assert search_policy_documents(client["id"], "surrender value", k=4)
+
+    response = api_client.delete(
+        f"/clients/{client['id']}/documents/{upload['id']}",
+        headers=_headers(advisor.id),
+    )
+
+    assert response.status_code == 204
+    results = search_policy_documents(client["id"], "surrender value", k=4)
+    assert not any(r["document_id"] == upload["id"] for r in results)

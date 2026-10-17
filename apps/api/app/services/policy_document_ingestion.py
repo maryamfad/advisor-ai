@@ -18,13 +18,17 @@ is enforced by filtering on `client_id` at query time, verified by
 test_documents_api.py.
 """
 
+import json
 from functools import lru_cache
 
 from langchain_openai import OpenAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
 
 from app.core.config import settings
+from app.db import engine
 from app.models.document import Document
 
 CHUNK_SIZE = 1000
@@ -101,6 +105,30 @@ def ingest_policy_document(document: Document, text: str) -> int:
         ],
     )
     return len(chunks)
+
+
+def delete_policy_document_chunks(document_id: int) -> None:
+    """Removes any pgvector chunks for `document_id`, called when a
+    Document row is deleted so a removed policy stops being
+    searchable. Goes straight at PGVector's own table via a JSONB
+    containment query rather than through PGVector itself -- its
+    delete() only accepts chunk ids (never recorded; add_texts'
+    return value is discarded in ingest_policy_document), and
+    constructing it at all requires embeddings credentials this
+    doesn't need. A no-op if nothing has ever been ingested yet (the
+    table doesn't exist).
+    """
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "DELETE FROM langchain_pg_embedding "
+                    "WHERE cmetadata @> CAST(:filter AS jsonb)"
+                ),
+                {"filter": json.dumps({"document_id": document_id})},
+            )
+    except ProgrammingError:
+        pass
 
 
 def search_policy_documents(client_id: int, query: str, k: int = 4) -> list[dict]:

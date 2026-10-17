@@ -15,13 +15,19 @@ from pypdf import PdfReader
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_advisor_id, get_db, get_owned_client
+from app.api.dependencies import (
+    get_current_advisor_id,
+    get_db,
+    get_owned_client,
+    get_owned_document,
+)
 from app.core.config import settings
 from app.models.client import Client
 from app.models.document import Document, DocumentCategory
 from app.schemas.document import DocumentRead
 from app.services.policy_document_ingestion import (
     EmbeddingUnavailableError,
+    delete_policy_document_chunks,
     ingest_policy_document,
 )
 
@@ -89,3 +95,17 @@ def list_documents(
     stmt = select(Document).where(Document.client_id == client.id)
 
     return list(db.scalars(stmt).all())
+
+
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_document(
+    db: Session = Depends(get_db),
+    document: Document = Depends(get_owned_document),
+) -> None:
+    # Best-effort: the row is the source of truth either way, and a
+    # missing/already-gone file shouldn't block deleting the record.
+    Path(document.storage_path).unlink(missing_ok=True)
+    delete_policy_document_chunks(document.id)
+
+    db.delete(document)
+    db.commit()

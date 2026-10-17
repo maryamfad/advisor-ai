@@ -11,6 +11,7 @@ from app.models.budget import Budget
 from app.models.client import Client
 from app.models.debt import Debt
 from app.models.dependent import Dependent
+from app.models.document import Document
 from app.models.financial_goal import FinancialGoal
 from app.models.financial_needs_analysis import FinancialNeedsAnalysis
 from app.models.financial_plan import FinancialPlan, FinancialPlanActionItem
@@ -199,6 +200,26 @@ def get_owned_dependent(
         )
 
     return dependent
+
+
+def get_owned_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    client: Client = Depends(get_owned_client),
+) -> Document:
+    """Fetch a document by id, scoped to the already-verified owned
+    client. Used by routes nested under
+    /clients/{client_id}/documents/{document_id}.
+    """
+    document = db.get(Document, document_id)
+
+    if document is None or document.client_id != client.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found.",
+        )
+
+    return document
 
 
 def get_owned_income_source(
