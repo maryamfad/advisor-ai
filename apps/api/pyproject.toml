@@ -13,6 +13,11 @@ dependencies = [
     "anthropic>=0.122.0",
     "langgraph>=0.2.60",
     "langchain-anthropic>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-postgres>=0.0.12",
+    "pgvector>=0.3.6",
+    "pypdf>=5.0.0",
+    "langchain-text-splitters>=0.3.0",
 ]
 
 [dependency-groups]
@@ -29,7 +34,13 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.flake8-bugbear]
-extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Header",
+    "fastapi.Query",
+    "fastapi.File",
+    "fastapi.Form",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
