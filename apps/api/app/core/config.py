@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +27,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     ai_agent_model: str = "claude-sonnet-5"
     ai_agent_max_tool_iterations: int = 6
+
+    # Which chat model backs the AI assistant -- see
+    # app/services/chat_model.py. Ollama's tool-calling is best-effort
+    # only (see the README's limitations section), not validated or
+    # guarded specially here.
+    chat_model_provider: Literal["anthropic", "openai", "ollama"] = "anthropic"
+    ollama_base_url: str = "http://localhost:11434"
 
     # Optional -- used for policy-document embeddings (RAG). Routes
     # that ingest a document raise a clear error if this isn't set,

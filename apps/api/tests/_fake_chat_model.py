@@ -35,12 +35,12 @@ class ScriptedChatModel(BaseChatModel):
 def patch_chat_model(
     monkeypatch, module, responses: list[AIMessage]
 ) -> ScriptedChatModel:
-    """Patches `module`'s ChatAnthropic import (and its settings'
-    anthropic_api_key, to pass run_agent_turn's presence check) so the
-    agent loop drives `fake_model` instead of a real API call. Mirrors
-    the old `_patch_anthropic(monkeypatch, responses)` helper's
-    call-site shape."""
+    """Patches `module`'s build_chat_model import so the agent loop
+    drives `fake_model` instead of calling out to a real provider --
+    bypasses build_chat_model's own "is a key configured" check
+    entirely, since the real function is never called. Mirrors the
+    old `_patch_anthropic(monkeypatch, responses)` helper's call-site
+    shape."""
     fake_model = ScriptedChatModel(responses=list(responses))
-    monkeypatch.setattr(module.settings, "anthropic_api_key", "fake-test-key")
-    monkeypatch.setattr(module, "ChatAnthropic", lambda **kwargs: fake_model)
+    monkeypatch.setattr(module, "build_chat_model", lambda: fake_model)
     return fake_model

@@ -15,7 +15,6 @@ import json
 import uuid
 from dataclasses import dataclass
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langgraph.errors import GraphRecursionError
 from sqlalchemy import select
@@ -26,8 +25,7 @@ from app.models.ai_conversation import AiConversation, AiMessage, MessageRole
 from app.models.client import Client
 from app.services.ai_graph import build_agent_graph, recursion_limit_for
 from app.services.ai_tools import build_langchain_tools
-
-MAX_RESPONSE_TOKENS = 1024
+from app.services.chat_model import build_chat_model
 
 SYSTEM_PROMPT = """\
 You are an assistant helping a financial advisor prepare for and \
@@ -135,11 +133,7 @@ def run_agent_turn(
     client: Client,
     user_message: str,
 ) -> AssistantTurnResult:
-    if not settings.anthropic_api_key:
-        raise RuntimeError(
-            "No anthropic_api_key configured -- set one in .env to use the "
-            "AI assistant."
-        )
+    llm = build_chat_model()  # raises RuntimeError if not configured
 
     db.add(
         AiMessage(
@@ -152,11 +146,6 @@ def run_agent_turn(
 
     history = _load_history(db, conversation)
     tools = build_langchain_tools(db, client)
-    llm = ChatAnthropic(
-        model=settings.ai_agent_model,
-        api_key=settings.anthropic_api_key,
-        max_tokens=MAX_RESPONSE_TOKENS,
-    )
     graph = build_agent_graph(llm, tools, SYSTEM_PROMPT)
 
     thread_config = {"configurable": {"thread_id": str(uuid.uuid4())}}
