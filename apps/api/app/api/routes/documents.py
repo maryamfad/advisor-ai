@@ -81,16 +81,6 @@ def upload_document(
 ) -> Document:
     _validate_client_ownership(db, client_id, advisor_id)
 
-    if category == DocumentCategory.INSURANCE_POLICY and client_id is None:
-        # RAG search (search_policy_documents) is always scoped to a
-        # client -- a policy document with no client would be
-        # ingested but never findable, so reject it up front rather
-        # than silently accepting a file nothing can retrieve.
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insurance policy documents must belong to a client.",
-        )
-
     raw_bytes = file.file.read()
 
     storage_dir = Path(settings.document_storage_dir) / (
@@ -113,14 +103,17 @@ def upload_document(
     db.commit()
     db.refresh(document)
 
-    if category == DocumentCategory.INSURANCE_POLICY:
+    if client_id is None:
+        # Firm-wide documents (no client) are the ones made searchable
+        # by the AI assistant -- per-client documents are plain
+        # storage, never ingested, regardless of category.
         try:
             ingest_policy_document(document, _extract_text(file.filename, raw_bytes))
         except EmbeddingUnavailableError as exc:
             # The file itself is already saved and the Document row
-            # already committed -- only the policy-search enrichment
-            # step is unavailable, same "optional feature, clear
-            # error" pattern as the AI assistant's own 503.
+            # already committed -- only the search enrichment step is
+            # unavailable, same "optional feature, clear error"
+            # pattern as the AI assistant's own 503.
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
             ) from exc

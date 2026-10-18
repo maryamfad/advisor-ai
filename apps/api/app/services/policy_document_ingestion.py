@@ -1,6 +1,12 @@
-"""Embeds and stores insurance-policy document text in pgvector, and
+"""Embeds and stores firm-wide document text in pgvector, and
 searches it back out for the AI assistant's search_policy_documents
 tool (app/services/ai_tools.py).
+
+Only documents uploaded with no client (firm-wide -- regulatory,
+investment, or other practice-level material) are ever ingested here;
+per-client documents are plain storage and never reach this module.
+See the `client_id is None` check in
+app/api/routes/documents.py::upload_document.
 
 The one deliberate exception to this codebase's "every service
 function is pure" rule -- embedding a document is unavoidably a live
@@ -8,14 +14,15 @@ API call, and searching touches the DB. Kept small and clearly
 labeled as the exception, same category as market_data_client.py and
 ai_agent.py.
 
-client_id/document_id/chunk_index/filename are stored in PGVector's
-own metadata JSONB column rather than a hand-rolled, FK'd table --
-langchain_postgres.PGVector manages its own tables outside
+advisor_id/client_id/document_id/chunk_index/filename are stored in
+PGVector's own metadata JSONB column rather than a hand-rolled, FK'd
+table -- langchain_postgres.PGVector manages its own tables outside
 SQLAlchemy's Base.metadata, so there's no Alembic-visible schema for
 chunks themselves (only the `vector` extension is enabled by a
-migration; see migrations/versions/d7aaf9bc765f_*). Client isolation
-is enforced by filtering on `client_id` at query time, verified by
-test_documents_api.py.
+migration; see migrations/versions/d7aaf9bc765f_*). Isolation is
+enforced by filtering on `advisor_id` at query time (every ingested
+document is firm-wide, so client_id is always null in practice and
+isn't useful for filtering), verified by test_documents_api.py.
 """
 
 import json
@@ -79,7 +86,7 @@ def chunk_text(text: str) -> list[str]:
 
 def ingest_policy_document(document: Document, text: str) -> int:
     """Chunks `text` and embeds it into pgvector, tagged with enough
-    metadata to filter by client at search time and to cite the
+    metadata to filter by advisor at search time and to cite the
     source document in a tool result. Returns the number of chunks
     stored."""
     if not settings.openai_api_key:
@@ -96,6 +103,7 @@ def ingest_policy_document(document: Document, text: str) -> int:
         texts=chunks,
         metadatas=[
             {
+                "advisor_id": document.advisor_id,
                 "client_id": document.client_id,
                 "document_id": document.id,
                 "chunk_index": index,
@@ -131,11 +139,13 @@ def delete_policy_document_chunks(document_id: int) -> None:
         pass
 
 
-def search_policy_documents(client_id: int, query: str, k: int = 4) -> list[dict]:
+def search_policy_documents(advisor_id: int, query: str, k: int = 4) -> list[dict]:
     """Returns the top-k passages for `query`, restricted to
-    `client_id`'s own documents -- the metadata filter is what
-    prevents one client's policy details from ever surfacing in
-    another's conversation."""
+    `advisor_id`'s own firm-wide documents -- the metadata filter is
+    what prevents one advisor's documents from ever surfacing in
+    another advisor's conversation. Every ingested document applies
+    to all of that advisor's clients (nothing client-specific is ever
+    ingested), so this is not further scoped by client."""
     if not settings.openai_api_key:
         raise EmbeddingUnavailableError(
             "No openai_api_key configured -- set one in .env to search "
@@ -143,7 +153,7 @@ def search_policy_documents(client_id: int, query: str, k: int = 4) -> list[dict
         )
 
     results = get_vectorstore().similarity_search_with_score(
-        query, k=k, filter={"client_id": client_id}
+        query, k=k, filter={"advisor_id": advisor_id}
     )
 
     return [

@@ -118,7 +118,7 @@ def test_upload_document_persists_file_and_row(
 
 
 def test_upload_firm_wide_document_with_no_client_id(
-    api_client: TestClient, advisor: Advisor
+    api_client: TestClient, advisor: Advisor, fake_policy_vectorstore: PGVector
 ) -> None:
     response = _upload(
         api_client,
@@ -154,22 +154,8 @@ def test_upload_rejects_client_id_not_owned_by_advisor(
     assert response.status_code == 400
 
 
-def test_upload_insurance_policy_without_client_id_is_rejected(
-    api_client: TestClient, advisor: Advisor
-) -> None:
-    response = _upload(
-        api_client,
-        advisor.id,
-        filename="policy.txt",
-        content=b"policy contents",
-        category="insurance_policy",
-    )
-
-    assert response.status_code == 400
-
-
 def test_investment_category_round_trips(
-    api_client: TestClient, advisor: Advisor
+    api_client: TestClient, advisor: Advisor, fake_policy_vectorstore: PGVector
 ) -> None:
     response = _upload(
         api_client,
@@ -187,7 +173,10 @@ def test_investment_category_round_trips(
 
 
 def test_list_documents_is_scoped_to_advisor(
-    api_client: TestClient, advisor: Advisor, second_advisor: Advisor
+    api_client: TestClient,
+    advisor: Advisor,
+    second_advisor: Advisor,
+    fake_policy_vectorstore: PGVector,
 ) -> None:
     _upload(
         api_client,
@@ -210,7 +199,7 @@ def test_list_documents_is_scoped_to_advisor(
 
 
 def test_list_documents_filters_by_client_id_query_param(
-    api_client: TestClient, advisor: Advisor
+    api_client: TestClient, advisor: Advisor, fake_policy_vectorstore: PGVector
 ) -> None:
     client = _create_client(api_client, advisor.id, "doc-filter@example.com")
     _upload(
@@ -261,10 +250,33 @@ def test_list_client_documents_returns_uploaded_documents(
 def test_upload_without_configured_embeddings_returns_503(
     api_client: TestClient, advisor: Advisor, monkeypatch
 ) -> None:
-    client = _create_client(api_client, advisor.id, "doc3@example.com")
     import app.services.policy_document_ingestion as ingestion_module
 
     monkeypatch.setattr(ingestion_module.settings, "openai_api_key", None)
+
+    response = _upload(
+        api_client,
+        advisor.id,
+        filename="policy.txt",
+        content=b"policy contents",
+        category="regulatory",
+    )
+
+    assert response.status_code == 503
+
+
+def test_per_client_upload_is_never_ingested(
+    api_client: TestClient, advisor: Advisor, monkeypatch
+) -> None:
+    import app.services.policy_document_ingestion as ingestion_module
+
+    # No OpenAI key configured -- if this upload attempted ingestion
+    # it would 503, same as the firm-wide case above. A per-client
+    # upload must succeed regardless, proving ingestion was never
+    # attempted at all.
+    monkeypatch.setattr(ingestion_module.settings, "openai_api_key", None)
+
+    client = _create_client(api_client, advisor.id, "doc-never-ingested@example.com")
 
     response = _upload(
         api_client,
@@ -275,61 +287,75 @@ def test_upload_without_configured_embeddings_returns_503(
         client_id=client["id"],
     )
 
-    assert response.status_code == 503
+    assert response.status_code == 201
 
 
-def test_upload_insurance_policy_document_is_searchable(
+def test_per_client_document_never_appears_in_search(
     api_client: TestClient,
     advisor: Advisor,
     fake_policy_vectorstore: PGVector,
 ) -> None:
-    client = _create_client(api_client, advisor.id, "doc4@example.com")
+    client = _create_client(api_client, advisor.id, "doc-not-searchable@example.com")
 
-    response = _upload(
+    upload = _upload(
         api_client,
         advisor.id,
         filename="policy.txt",
         content=b"This policy has a surrender value of ten thousand dollars.",
         category="insurance_policy",
         client_id=client["id"],
-    )
-    assert response.status_code == 201
-    document_id = response.json()["id"]
+    ).json()
 
-    results = search_policy_documents(client["id"], "surrender value", k=4)
+    results = search_policy_documents(advisor.id, "surrender value", k=10)
 
-    assert any(r["document_id"] == document_id for r in results)
+    assert not any(r["document_id"] == upload["id"] for r in results)
 
 
-def test_insurance_policy_search_is_scoped_to_client(
+def test_firm_wide_document_is_searchable(
     api_client: TestClient,
     advisor: Advisor,
     fake_policy_vectorstore: PGVector,
 ) -> None:
-    client_a = _create_client(api_client, advisor.id, "doc5a@example.com")
-    client_b = _create_client(api_client, advisor.id, "doc5b@example.com")
+    response = _upload(
+        api_client,
+        advisor.id,
+        filename="policy.txt",
+        content=b"This policy has a surrender value of ten thousand dollars.",
+        category="regulatory",
+    )
+    assert response.status_code == 201
+    document_id = response.json()["id"]
 
+    results = search_policy_documents(advisor.id, "surrender value", k=4)
+
+    assert any(r["document_id"] == document_id for r in results)
+
+
+def test_firm_wide_search_is_scoped_to_advisor(
+    api_client: TestClient,
+    advisor: Advisor,
+    second_advisor: Advisor,
+    fake_policy_vectorstore: PGVector,
+) -> None:
     _upload(
         api_client,
         advisor.id,
-        filename="policy_a.txt",
-        content=b"Client A policy mentions a disability waiver rider.",
-        category="insurance_policy",
-        client_id=client_a["id"],
+        filename="mine.txt",
+        content=b"My firm mentions a disability waiver rider.",
+        category="regulatory",
     )
     _upload(
         api_client,
-        advisor.id,
-        filename="policy_b.txt",
-        content=b"Client B policy mentions a disability waiver rider.",
-        category="insurance_policy",
-        client_id=client_b["id"],
+        second_advisor.id,
+        filename="theirs.txt",
+        content=b"Their firm mentions a disability waiver rider.",
+        category="regulatory",
     )
 
-    results_for_a = search_policy_documents(client_a["id"], "disability waiver", k=10)
+    results_for_mine = search_policy_documents(advisor.id, "disability waiver", k=10)
 
-    assert len(results_for_a) == 1
-    assert results_for_a[0]["source_document"] == "policy_a.txt"
+    assert len(results_for_mine) == 1
+    assert results_for_mine[0]["source_document"] == "mine.txt"
 
 
 def test_delete_document_removes_row_and_file(
@@ -362,7 +388,7 @@ def test_delete_document_removes_row_and_file(
 
 
 def test_delete_firm_wide_document_removes_row_and_file(
-    api_client: TestClient, advisor: Advisor
+    api_client: TestClient, advisor: Advisor, fake_policy_vectorstore: PGVector
 ) -> None:
     upload = _upload(
         api_client,
@@ -405,21 +431,19 @@ def test_delete_document_requires_owned_advisor(
     assert response.status_code == 404
 
 
-def test_delete_insurance_policy_document_removes_it_from_search(
+def test_delete_firm_wide_document_removes_it_from_search(
     api_client: TestClient,
     advisor: Advisor,
     fake_policy_vectorstore: PGVector,
 ) -> None:
-    client = _create_client(api_client, advisor.id, "doc8@example.com")
     upload = _upload(
         api_client,
         advisor.id,
         filename="policy.txt",
         content=b"This policy has a surrender value of ten thousand dollars.",
-        category="insurance_policy",
-        client_id=client["id"],
+        category="regulatory",
     ).json()
-    assert search_policy_documents(client["id"], "surrender value", k=4)
+    assert search_policy_documents(advisor.id, "surrender value", k=4)
 
     response = api_client.delete(
         f"/documents/{upload['id']}",
@@ -427,5 +451,5 @@ def test_delete_insurance_policy_document_removes_it_from_search(
     )
 
     assert response.status_code == 204
-    results = search_policy_documents(client["id"], "surrender value", k=4)
+    results = search_policy_documents(advisor.id, "surrender value", k=4)
     assert not any(r["document_id"] == upload["id"] for r in results)

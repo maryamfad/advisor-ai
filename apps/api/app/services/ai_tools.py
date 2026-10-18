@@ -213,16 +213,19 @@ def compare_funds(
 def search_policy_documents(
     db: Session, client: Client, query: str, k: int = 4
 ) -> dict:
-    """Searches this client's ingested insurance policy documents for
-    passages relevant to `query`, returning cited passages with their
-    source document and a relevance score. `db` is unused -- pgvector
-    search goes through its own connection (see
+    """Searches this client's advisor's firm-wide documents
+    (regulatory, investment, and other practice-level material
+    uploaded with no client attached) for passages relevant to
+    `query`, returning cited passages with their source document and
+    a relevance score. Documents uploaded for a specific client are
+    plain storage and are never searchable here. `db` is unused --
+    pgvector search goes through its own connection (see
     policy_document_ingestion.get_vectorstore) -- kept only so this
     handler's signature matches every other tool's
     (db, client, **kwargs) shape that build_langchain_tools binds via
     functools.partial."""
     try:
-        results = _search_policy_documents(client.id, query, k)
+        results = _search_policy_documents(client.advisor_id, query, k)
     except EmbeddingUnavailableError as exc:
         return {"results": [], "warning": str(exc)}
 
@@ -304,7 +307,8 @@ AI_TOOLS: list[ToolDefinition] = [
                 "query": {
                     "type": "string",
                     "description": (
-                        "What to search for in this client's policy documents."
+                        "What to search for in this advisor's firm-wide "
+                        "documents (regulatory, investment, etc.)."
                     ),
                 },
                 "k": {

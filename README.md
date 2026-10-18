@@ -41,15 +41,15 @@ Every figure comes from a deterministic Python function. The model's job is to d
 | `get_risk_tolerance` | The scored risk questionnaire result |
 | `generate_financial_plan_preview` | A draft plan with action items |
 | `compare_funds` | Performance of tracked funds over a period |
-| `search_policy_documents` | Cited passages from the client's uploaded insurance policy documents |
+| `search_policy_documents` | Cited passages from the advisor's firm-wide documents (regulatory, investment, etc.) |
 
 The system prompt requires the assistant to call a tool before stating any number, to cite the tool calls behind its answers, and to say so plainly when the tools cannot answer a question. Each conversation is stored with its tool calls, so an advisor can see exactly where an answer came from.
 
 The rule thresholds and Canadian account limits live in their own modules as named constants, so they can be reviewed and updated each tax year without touching the logic.
 
-### Policy document search (RAG)
+### Firm-wide document search (RAG)
 
-Advisors can upload a client's insurance policy (`POST /clients/{id}/documents`, category `insurance_policy`). The text is chunked and embedded into Postgres via [pgvector](https://github.com/pgvector/pgvector) and [langchain-postgres](https://github.com/langchain-ai/langchain-postgres), scoped to that client — one client's policy details never surface in another's search results. The `search_policy_documents` tool then lets the assistant answer questions like "What does this policy say about the surrender value?" with a cited passage and source document, never a number it invented.
+Documents uploaded with no client attached (`POST /documents`, no `client_id`) — the firm-wide Documents page — are chunked and embedded into Postgres via [pgvector](https://github.com/pgvector/pgvector) and [langchain-postgres](https://github.com/langchain-ai/langchain-postgres), scoped to the advisor who uploaded them. The `search_policy_documents` tool then lets the assistant answer questions like "What does our policy say about the surrender value clause?" with a cited passage and source document, never a number it invented. Documents uploaded for a specific client (the per-client Documents tab) are plain storage — never ingested, never searchable — regardless of category.
 
 ### Chat model provider
 

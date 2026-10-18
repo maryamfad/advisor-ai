@@ -261,13 +261,17 @@ class TestSearchPolicyDocuments:
         client = _create_client(api_client, advisor.id, "tool9@example.com")
         client_orm = _fetch_client(db_session, client["id"])
 
+        # Firm-wide (no client_id) -- client_orm is only used below to
+        # prove the tool handler resolves client.advisor_id correctly
+        # from within a client-scoped conversation, not to scope the
+        # document itself.
         document = Document(
             advisor_id=advisor.id,
-            client_id=client_orm.id,
+            client_id=None,
             filename="policy.txt",
             content_type="text/plain",
             storage_path="/tmp/policy.txt",
-            category=DocumentCategory.INSURANCE_POLICY,
+            category=DocumentCategory.REGULATORY,
         )
         db_session.add(document)
         db_session.commit()
