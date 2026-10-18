@@ -30,12 +30,11 @@ export function DocumentsTab({ clientId }: { clientId: number }) {
       accessorKey: 'category',
       header: 'Category',
       cell: ({ getValue }) => {
+        // Every document on this tab belongs to this client, so none
+        // of them are ever searchable by the AI assistant -- see
+        // DocumentsPage for firm-wide, searchable documents.
         const category = getValue() as string
-        return (
-          <Badge variant={category === 'insurance_policy' ? 'success' : 'outline'}>
-            {formatEnumLabel(category)}
-          </Badge>
-        )
+        return <Badge variant="outline">{formatEnumLabel(category)}</Badge>
       },
     },
     {

@@ -31,12 +31,10 @@ export function DocumentsPage() {
       accessorKey: 'category',
       header: 'Category',
       cell: ({ getValue }) => {
+        // Every document on this page is firm-wide (no client), so
+        // all of them are searchable by the AI assistant.
         const category = getValue() as string
-        return (
-          <Badge variant={category === 'insurance_policy' ? 'success' : 'outline'}>
-            {formatEnumLabel(category)}
-          </Badge>
-        )
+        return <Badge variant="success">{formatEnumLabel(category)}</Badge>
       },
     },
     {

@@ -98,9 +98,9 @@ export function DocumentUploadDialog({
               </SelectContent>
             </Select>
           </div>
-          {category === 'insurance_policy' && clientId !== undefined && (
+          {clientId === undefined && (
             <p className="text-sm text-muted-foreground">
-              Insurance policy documents are searchable by the AI assistant once uploaded.
+              This document will be made searchable by the AI assistant.
             </p>
           )}
           {upload.isError && (
